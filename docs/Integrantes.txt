@@ -1,0 +1,44 @@
+========================================
+  DONATECH — INTEGRANTES DEL EQUIPO
+  TPY1101 — Taller Aplicado de Programación
+  Evaluación Parcial N°2
+========================================
+
+Institución: [Nombre de la institución]
+Asignatura:  TPY1101 — Taller Aplicado de Programación
+Sección:     [Sección]
+Docente:     [Nombre del docente]
+Fecha:       Mayo 2026
+
+----------------------------------------
+INTEGRANTES
+----------------------------------------
+
+1. [Nombre Completo Integrante 1]
+   RUT: [XX.XXX.XXX-X]
+   Correo: [correo@institucion.cl]
+   Rol en el proyecto: Líder de Proyecto / Backend Developer
+
+2. [Nombre Completo Integrante 2]
+   RUT: [XX.XXX.XXX-X]
+   Correo: [correo@institucion.cl]
+   Rol en el proyecto: Frontend Developer
+
+3. [Nombre Completo Integrante 3]
+   RUT: [XX.XXX.XXX-X]
+   Correo: [correo@institucion.cl]
+   Rol en el proyecto: Base de Datos / Documentación
+
+4. [Nombre Completo Integrante 4]
+   RUT: [XX.XXX.XXX-X]
+   Correo: badibe.fs@gmail.com
+   Rol en el proyecto: Frontend Developer / Arquitectura
+
+----------------------------------------
+REPOSITORIOS
+----------------------------------------
+
+Backend:  https://github.com/OmarNietoc/Donatech
+Frontend: [URL del repositorio frontend]
+
+========================================
