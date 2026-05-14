@@ -178,7 +178,7 @@ jwt.expiration=86400000
 ### 4.1 Clonar Repositorio
 
 ```bash
-git clone [URL-repositorio-frontend]
+git clone https://www.github.com/Dressor/Donatech-Front
 cd Donatech-Front
 ```
 
