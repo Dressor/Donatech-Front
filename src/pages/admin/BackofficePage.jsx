@@ -16,12 +16,12 @@ const TICKET_TYPES = [
   { value: '', label: 'Todos' },
   { value: 'VALIDACION_TRANSFERENCIA', label: 'Transferencias' },
   { value: 'VALIDACION_CAMPAÑA', label: 'Campañas' },
-  { value: 'SOPORTE_GENERAL', label: 'Soporte' },
+  { value: 'OTRO', label: 'Otro' },
 ];
 
 export default function BackofficePage() {
   const [typeFilter, setTypeFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ABIERTO');
+  const [statusFilter, setStatusFilter] = useState('PENDIENTE');
   const [selectedId, setSelectedId] = useState(null);
   const [motivo, setMotivo] = useState('');
   const queryClient = useQueryClient();
@@ -93,7 +93,7 @@ export default function BackofficePage() {
 
         <div className="ml-auto flex items-center gap-2">
           <span className="text-sm text-gray-600 font-medium">Estado:</span>
-          {['ABIERTO', 'EN_PROCESO', 'RESUELTO'].map((s) => (
+          {['PENDIENTE', 'EN_PROGRESO', 'RESUELTO'].map((s) => (
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
@@ -134,7 +134,7 @@ export default function BackofficePage() {
                   )}
                 </div>
 
-                {ticket.estado === 'ABIERTO' && (
+                {ticket.estado === 'PENDIENTE' && (
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <button
                       onClick={() => approveMutation.mutate({ id: ticket.id, tipo: ticket.tipo })}

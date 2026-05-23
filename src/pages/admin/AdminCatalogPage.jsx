@@ -91,8 +91,8 @@ export default function AdminCatalogPage() {
                   <input {...register('nombre', { required: true })} className="input-field" placeholder="Kit Alimentación" />
                 </div>
                 <div>
-                  <label className="label">Precio base (CLP)</label>
-                  <input {...register('precioBase')} type="number" className="input-field" placeholder="25000" />
+                  <label className="label">Precio estimado (CLP)</label>
+                  <input {...register('precioEstimado')} type="number" className="input-field" placeholder="25000" />
                 </div>
                 <div className="col-span-2">
                   <label className="label">Descripción</label>
@@ -118,8 +118,8 @@ export default function AdminCatalogPage() {
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900 text-sm">{kit.nombre}</h3>
-                      {kit.precioBase && (
-                        <p className="text-xs text-primary-600">${kit.precioBase?.toLocaleString('es-CL')} CLP</p>
+                      {kit.precioEstimado && (
+                        <p className="text-xs text-primary-600">${kit.precioEstimado?.toLocaleString('es-CL')} CLP</p>
                       )}
                     </div>
                   </div>
@@ -158,9 +158,9 @@ export default function AdminCatalogPage() {
                       <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50/50">
                         <td className="px-4 py-3 text-gray-500">#{c.id}</td>
                         <td className="px-4 py-3 font-medium text-gray-900 max-w-xs truncate">{c.titulo}</td>
-                        <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
+                        <td className="px-4 py-3"><StatusBadge status={c.estado} /></td>
                         <td className="px-4 py-3">
-                          {c.status === 'ACTIVA' && (
+                          {c.estado === 'ACTIVA' && (
                             <button
                               onClick={() => closeMutation.mutate(c.id)}
                               className="text-xs px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200"

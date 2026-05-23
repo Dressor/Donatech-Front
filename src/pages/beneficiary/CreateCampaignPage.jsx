@@ -38,6 +38,7 @@ export default function CreateCampaignPage() {
     try {
       const payload = {
         ...data,
+        beneficiaryId: user.id,
         regionId: data.regionId || undefined,
         comunaId: data.comunaId || undefined,
       };
@@ -96,7 +97,7 @@ export default function CreateCampaignPage() {
             <select {...register('regionId')} className="input-field">
               <option value="">Selecciona región</option>
               {regions.map((r) => (
-                <option key={r.id} value={r.id}>{r.nombre}</option>
+                <option key={r.id} value={r.id}>{r.nombre ?? r.name}</option>
               ))}
             </select>
           </div>
@@ -105,7 +106,7 @@ export default function CreateCampaignPage() {
             <select {...register('comunaId')} className="input-field" disabled={!regionId}>
               <option value="">Selecciona comuna</option>
               {comunas.map((c) => (
-                <option key={c.id} value={c.id}>{c.nombre}</option>
+                <option key={c.id} value={c.id}>{c.nombre ?? c.name}</option>
               ))}
             </select>
           </div>

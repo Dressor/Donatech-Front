@@ -13,6 +13,7 @@ export const usersApi = {
   // Beneficiaries
   getBeneficiaries: () => api.get('/api/beneficiaries'),
   getBeneficiaryById: (id) => api.get(`/api/beneficiaries/${id}`),
+  getBeneficiaryByUserId: (userId) => api.get(`/api/beneficiaries/by-user/${userId}`),
   getBeneficiariesByStatus: (estado) => api.get('/api/beneficiaries/by-estado', { params: { estado } }),
   verifyBeneficiary: (id, data) => api.patch(`/api/beneficiaries/${id}/verify`, data),
 

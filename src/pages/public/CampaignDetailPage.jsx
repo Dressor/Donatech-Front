@@ -58,7 +58,7 @@ export default function CampaignDetailPage() {
               {(campaign.region || campaign.comuna) && (
                 <span className="flex items-center gap-1 text-sm text-gray-500">
                   <MapPinIcon className="w-4 h-4" />
-                  {campaign.comuna?.nombre ?? ''}{campaign.region ? `, ${campaign.region?.nombre ?? campaign.region}` : ''}
+                  {campaign.comuna?.nombre ?? campaign.comuna?.name ?? ''}{campaign.region ? `, ${campaign.region?.nombre ?? campaign.region?.name ?? campaign.region}` : ''}
                 </span>
               )}
             </div>

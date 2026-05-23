@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080';
+const BASE_URL = import.meta.env.VITE_API_URL || '';
 
 const api = axios.create({
   baseURL: BASE_URL,
@@ -24,7 +24,7 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !error.config?.url?.includes('/auth/login')) {
       localStorage.removeItem('donatech_token');
       localStorage.removeItem('donatech_user');
       window.location.href = '/login';
