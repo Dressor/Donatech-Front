@@ -35,7 +35,7 @@ export default function AdminBeneficiariesPage() {
 
   /* ── Mutaciones beneficiarios ── */
   const approveBenMutation = useMutation({
-    mutationFn: (id) => usersApi.verifyBeneficiary(id, { estado: 'VERIFICADO', verificadorId: user?.userId }),
+    mutationFn: (id) => usersApi.verifyBeneficiary(id, { estado: 'VERIFICADO', verificadorId: user?.id }),
     onSuccess: () => {
       toast.success('Beneficiario aprobado');
       queryClient.invalidateQueries(['pending-beneficiaries']);
@@ -44,7 +44,7 @@ export default function AdminBeneficiariesPage() {
   });
 
   const rejectBenMutation = useMutation({
-    mutationFn: ({ id, motivo }) => usersApi.verifyBeneficiary(id, { estado: 'RECHAZADO', verificadorId: user?.userId, motivoRechazo: motivo }),
+    mutationFn: ({ id, motivo }) => usersApi.verifyBeneficiary(id, { estado: 'RECHAZADO', verificadorId: user?.id, motivoRechazo: motivo }),
     onSuccess: () => {
       toast.success('Beneficiario rechazado');
       queryClient.invalidateQueries(['pending-beneficiaries']);
@@ -56,7 +56,7 @@ export default function AdminBeneficiariesPage() {
 
   /* ── Mutaciones empresas ── */
   const approveOrgMutation = useMutation({
-    mutationFn: (id) => usersApi.verifyCompany(id, { estado: 'VERIFICADO', verificadorId: user?.userId }),
+    mutationFn: (id) => usersApi.verifyCompany(id, { estado: 'VERIFICADO', verificadorId: user?.id }),
     onSuccess: () => {
       toast.success('Empresa aprobada');
       queryClient.invalidateQueries(['pending-companies']);
@@ -65,7 +65,7 @@ export default function AdminBeneficiariesPage() {
   });
 
   const rejectOrgMutation = useMutation({
-    mutationFn: ({ id, motivo }) => usersApi.verifyCompany(id, { estado: 'RECHAZADO', verificadorId: user?.userId, motivoRechazo: motivo }),
+    mutationFn: ({ id, motivo }) => usersApi.verifyCompany(id, { estado: 'RECHAZADO', verificadorId: user?.id, motivoRechazo: motivo }),
     onSuccess: () => {
       toast.success('Empresa rechazada');
       queryClient.invalidateQueries(['pending-companies']);
