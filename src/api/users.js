@@ -26,4 +26,9 @@ export const usersApi = {
   // Company
   createCompany: (data) => api.post('/api/users/company', data),
   getCompanyByUser: (userId) => api.get(`/api/users/company/${userId}`),
+
+  // Validación de empresas (Patente Municipal)
+  getAllCompanies: () => api.get('/api/companies'),
+  getCompaniesByStatus: (status) => api.get('/api/companies/by-status', { params: { status } }),
+  verifyCompany: (id, data) => api.patch(`/api/companies/${id}/verify`, data),
 };

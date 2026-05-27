@@ -9,6 +9,7 @@ import {
   CubeIcon,
   ExclamationTriangleIcon,
   ArrowTrendingUpIcon,
+  UserGroupIcon,
 } from '@heroicons/react/24/outline';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -31,6 +32,18 @@ export default function AdminDashboard() {
     select: (r) => r.data ?? [],
   });
 
+  const { data: pendingBeneficiaries = [] } = useQuery({
+    queryKey: ['pending-beneficiaries'],
+    queryFn: () => usersApi.getBeneficiariesByStatus('PENDIENTE'),
+    select: (r) => r.data ?? [],
+  });
+
+  const { data: pendingCompanies = [] } = useQuery({
+    queryKey: ['pending-companies'],
+    queryFn: () => usersApi.getCompaniesByStatus('PENDIENTE'),
+    select: (r) => r.data ?? [],
+  });
+
   const stats = [
     {
       label: 'Tickets abiertos',
@@ -47,14 +60,14 @@ export default function AdminDashboard() {
       link: '/admin/catalog',
     },
     {
-      label: 'En validación',
-      value: campaigns.filter((c) => c.status === 'EN_VALIDACION').length,
-      icon: ShieldCheckIcon,
+      label: 'Cuentas pendientes',
+      value: pendingBeneficiaries.length + pendingCompanies.length,
+      icon: UserGroupIcon,
       color: 'text-yellow-600 bg-yellow-50',
-      link: '/admin/backoffice',
+      link: '/admin/beneficiaries',
     },
     {
-      label: 'Activas',
+      label: 'Campañas activas',
       value: campaigns.filter((c) => c.status === 'ACTIVA').length,
       icon: ArrowTrendingUpIcon,
       color: 'text-green-600 bg-green-50',
@@ -110,10 +123,10 @@ export default function AdminDashboard() {
           <h3 className="font-semibold text-gray-800 mb-4">Acciones rápidas</h3>
           <div className="space-y-2">
             {[
+              { label: 'Validar cuentas pendientes (beneficiarios y empresas)', to: '/admin/beneficiaries', icon: UserGroupIcon },
               { label: 'Validar transferencias pendientes', to: '/admin/backoffice', icon: ShieldCheckIcon },
               { label: 'Gestionar catálogo de kits', to: '/admin/catalog', icon: CubeIcon },
               { label: 'Gestionar usuarios', to: '/admin/users', icon: UsersIcon },
-              { label: 'Ver campañas en validación', to: '/admin/campaigns', icon: HeartIcon },
             ].map((a) => (
               <Link
                 key={a.to}

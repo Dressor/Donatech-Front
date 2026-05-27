@@ -30,6 +30,7 @@ import AdminDashboard from './pages/admin/AdminDashboard';
 import BackofficePage from './pages/admin/BackofficePage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminCatalogPage from './pages/admin/AdminCatalogPage';
+import AdminBeneficiariesPage from './pages/admin/AdminBeneficiariesPage';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -160,6 +161,14 @@ function App() {
                   element={
                     <ProtectedRoute allowedRoles={['ROLE_ADMIN']}>
                       <AdminCatalogPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="admin/beneficiaries"
+                  element={
+                    <ProtectedRoute allowedRoles={['ROLE_ADMIN']}>
+                      <AdminBeneficiariesPage />
                     </ProtectedRoute>
                   }
                 />

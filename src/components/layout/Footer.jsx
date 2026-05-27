@@ -64,8 +64,7 @@ export default function Footer() {
           <p>© 2026 Donatech · Plataforma Solidaria de Transparencia y Acreditación</p>
           <p>
             Desarrollado con{' '}
-            <HeartIcon className="w-3 h-3 text-danger-500 inline" /> por el equipo Donatech ·
-            TPY1101
+            <HeartIcon className="w-3 h-3 text-danger-500 inline" /> por el equipo Donatech
           </p>
         </div>
       </div>

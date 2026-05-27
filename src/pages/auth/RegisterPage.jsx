@@ -3,7 +3,11 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { authApi, usersApi } from '../../api';
-import { HeartIcon } from '@heroicons/react/24/outline';
+import {
+  HeartIcon,
+  ClockIcon,
+  ArrowUpTrayIcon,
+} from '@heroicons/react/24/outline';
 
 const roleOptions = [
   { value: 'donante', label: 'Donante', desc: 'Quiero realizar donaciones a familias en Chile' },
@@ -18,6 +22,8 @@ export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const [regions, setRegions] = useState([]);
   const [comunas, setComunas] = useState([]);
+  const [patenteFile, setPatenteFile] = useState(null);
+  const [registeredPending, setRegisteredPending] = useState(false);
   const navigate = useNavigate();
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm();
@@ -34,17 +40,34 @@ export default function RegisterPage() {
   }, [regionId]);
 
   const onSubmit = async (data) => {
+    if (role === 'organization' && !patenteFile) {
+      toast.error('Debes subir la Patente Municipal para registrar tu empresa.');
+      return;
+    }
+
     setLoading(true);
     try {
       if (role === 'donante') {
         await authApi.register({ ...data, roleId: 2 });
+        toast.success('¡Cuenta creada! Revisa tu correo para confirmar.');
+        navigate('/login');
       } else if (role === 'beneficiary') {
         await authApi.registerBeneficiary(data);
+        setRegisteredPending(true);
       } else {
-        await authApi.registerOrganization(data);
+        // Organización — se envía como FormData para incluir el archivo
+        const formData = new FormData();
+        if (data.name)     formData.append('name', data.name);
+        if (data.email)    formData.append('email', data.email);
+        if (data.password) formData.append('password', data.password);
+        if (data.phone)    formData.append('phone', data.phone);
+        if (data.rut)      formData.append('rut', data.rut);
+        if (data.regionId) formData.append('regionId', data.regionId);
+        if (data.comunaId) formData.append('comunaId', data.comunaId);
+        formData.append('patenteFile', patenteFile);
+        await authApi.registerOrganization(formData);
+        setRegisteredPending(true);
       }
-      toast.success('¡Cuenta creada! Revisa tu correo para confirmar.');
-      navigate('/login');
     } catch (err) {
       toast.error(err.response?.data?.message ?? 'Error al registrarse');
     } finally {
@@ -52,6 +75,37 @@ export default function RegisterPage() {
     }
   };
 
+  /* ── Pantalla de solicitud pendiente ── */
+  if (registeredPending) {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] bg-gray-50 flex items-center justify-center px-4 py-12">
+        <div className="max-w-md w-full card text-center p-10">
+          <div className="w-16 h-16 rounded-full bg-yellow-100 flex items-center justify-center mx-auto mb-5">
+            <ClockIcon className="w-8 h-8 text-yellow-600" />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900 mb-3">
+            {role === 'beneficiary' ? 'Solicitud recibida' : 'Empresa registrada'}
+          </h2>
+          <p className="text-gray-500 leading-relaxed mb-2">
+            {role === 'beneficiary'
+              ? 'Tu registro fue enviado correctamente. Un administrador revisará tu información según los criterios de aprobación y te notificará cuando tu cuenta esté activa.'
+              : 'Tu solicitud fue enviada. El administrador revisará tu Patente Municipal y activará tu cuenta una vez validada la documentación.'}
+          </p>
+          <p className="text-sm text-gray-400 mb-8">
+            Este proceso puede tomar algunos días hábiles.
+          </p>
+          <Link to="/" className="btn-primary w-full block text-center">
+            Volver al inicio
+          </Link>
+          <Link to="/login" className="btn-outline w-full block text-center mt-3">
+            Ir al inicio de sesión
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  /* ── Formulario de registro ── */
   return (
     <div className="min-h-[calc(100vh-4rem)] bg-gray-50 py-12 px-4">
       <div className="max-w-2xl mx-auto">
@@ -74,7 +128,7 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        {/* Role selector */}
+        {/* Selector de tipo de cuenta */}
         <div className="card mb-6">
           <p className="text-sm font-semibold text-gray-700 mb-3">Tipo de cuenta</p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -98,18 +152,37 @@ export default function RegisterPage() {
           </div>
         </div>
 
+        {/* Avisos informativos */}
+        {role === 'beneficiary' && (
+          <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl text-sm text-yellow-800">
+            <strong>Importante:</strong> El registro como beneficiario requiere aprobación del administrador.
+            Tu solicitud será revisada antes de que puedas acceder a la plataforma.
+          </div>
+        )}
+        {role === 'organization' && (
+          <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-800">
+            <strong>Importante:</strong> Para registrarte como empresa debes adjuntar tu Patente Municipal
+            vigente. El administrador validará el documento antes de activar tu cuenta.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit(onSubmit)} className="card space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+
+            {/* Nombre / Razón social */}
             <div className="sm:col-span-2">
-              <label className="label">Nombre completo</label>
+              <label className="label">
+                {role === 'organization' ? 'Razón Social o Nombre de la Empresa' : 'Nombre completo'}
+              </label>
               <input
                 {...register('name', { required: 'El nombre es requerido' })}
-                placeholder="Juan Pérez"
+                placeholder={role === 'organization' ? 'Empresa XYZ Ltda.' : 'Juan Pérez'}
                 className="input-field"
               />
               {errors.name && <p className="text-xs text-danger-600 mt-1">{errors.name.message}</p>}
             </div>
 
+            {/* Correo */}
             <div>
               <label className="label">Correo electrónico</label>
               <input
@@ -124,6 +197,7 @@ export default function RegisterPage() {
               {errors.email && <p className="text-xs text-danger-600 mt-1">{errors.email.message}</p>}
             </div>
 
+            {/* Contraseña */}
             <div>
               <label className="label">Contraseña</label>
               <input
@@ -138,6 +212,7 @@ export default function RegisterPage() {
               {errors.password && <p className="text-xs text-danger-600 mt-1">{errors.password.message}</p>}
             </div>
 
+            {/* Teléfono */}
             <div>
               <label className="label">Teléfono (opcional)</label>
               <input
@@ -147,6 +222,7 @@ export default function RegisterPage() {
               />
             </div>
 
+            {/* RUT – Beneficiario */}
             {role === 'beneficiary' && (
               <div>
                 <label className="label">RUT</label>
@@ -159,6 +235,20 @@ export default function RegisterPage() {
               </div>
             )}
 
+            {/* RUT – Empresa */}
+            {role === 'organization' && (
+              <div>
+                <label className="label">RUT de la empresa</label>
+                <input
+                  {...register('rut', { required: 'El RUT de la empresa es requerido' })}
+                  placeholder="76.123.456-7"
+                  className="input-field"
+                />
+                {errors.rut && <p className="text-xs text-danger-600 mt-1">{errors.rut.message}</p>}
+              </div>
+            )}
+
+            {/* Región y Comuna */}
             {(role === 'beneficiary' || role === 'organization') && (
               <>
                 <div>
@@ -182,6 +272,7 @@ export default function RegisterPage() {
               </>
             )}
 
+            {/* Campos extra – Beneficiario */}
             {role === 'beneficiary' && (
               <>
                 <div className="sm:col-span-2">
@@ -191,7 +282,9 @@ export default function RegisterPage() {
                     placeholder="Av. Principal 123, Santiago"
                     className="input-field"
                   />
-                  {errors.direccionEntrega && <p className="text-xs text-danger-600 mt-1">{errors.direccionEntrega.message}</p>}
+                  {errors.direccionEntrega && (
+                    <p className="text-xs text-danger-600 mt-1">{errors.direccionEntrega.message}</p>
+                  )}
                 </div>
                 <div className="sm:col-span-2">
                   <label className="label">Descripción de la situación</label>
@@ -204,8 +297,53 @@ export default function RegisterPage() {
                 </div>
               </>
             )}
+
+            {/* Patente Municipal – Empresa */}
+            {role === 'organization' && (
+              <div className="sm:col-span-2">
+                <label className="label">
+                  Patente Municipal <span className="text-danger-600">*</span>
+                </label>
+                <div
+                  className={`relative border-2 border-dashed rounded-xl p-5 transition-colors cursor-pointer ${
+                    patenteFile
+                      ? 'border-primary-400 bg-primary-50'
+                      : 'border-gray-200 hover:border-gray-300 bg-white'
+                  }`}
+                >
+                  <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    onChange={(e) => setPatenteFile(e.target.files?.[0] ?? null)}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  />
+                  <div className="text-center pointer-events-none">
+                    <ArrowUpTrayIcon
+                      className={`w-8 h-8 mx-auto mb-2 ${
+                        patenteFile ? 'text-primary-500' : 'text-gray-400'
+                      }`}
+                    />
+                    {patenteFile ? (
+                      <>
+                        <p className="text-sm font-medium text-primary-700">{patenteFile.name}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">Haz clic para cambiar el archivo</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-sm text-gray-600">Sube tu Patente Municipal aquí</p>
+                        <p className="text-xs text-gray-400 mt-0.5">PDF, JPG o PNG · Máximo 10 MB</p>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-1.5">
+                  Este documento es necesario para verificar tu empresa ante el administrador.
+                </p>
+              </div>
+            )}
           </div>
 
+          {/* Términos */}
           <div className="flex items-start gap-2 pt-2">
             <input
               type="checkbox"
@@ -222,12 +360,20 @@ export default function RegisterPage() {
           </div>
           {errors.terms && <p className="text-xs text-danger-600">{errors.terms.message}</p>}
 
-          <button type="submit" disabled={loading} className="btn-primary w-full">
+          <button
+            type="submit"
+            disabled={loading || (role === 'organization' && !patenteFile)}
+            className="btn-primary w-full"
+          >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
                 <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Creando cuenta...
+                Enviando...
               </span>
+            ) : role === 'beneficiary' ? (
+              'Enviar solicitud'
+            ) : role === 'organization' ? (
+              'Registrar empresa'
             ) : (
               'Crear cuenta'
             )}

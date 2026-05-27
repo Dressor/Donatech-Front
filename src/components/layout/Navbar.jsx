@@ -28,6 +28,7 @@ const navLinks = {
   ROLE_ADMIN: [
     { label: 'Dashboard', to: '/admin/dashboard' },
     { label: 'Backoffice', to: '/admin/backoffice' },
+    { label: 'Validar cuentas', to: '/admin/beneficiaries' },
     { label: 'Usuarios', to: '/admin/users' },
     { label: 'Catálogo', to: '/admin/catalog' },
   ],
