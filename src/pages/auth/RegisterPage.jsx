@@ -65,8 +65,11 @@ export default function RegisterPage() {
         if (data.password) formData.append('password', data.password);
         if (data.phone)    formData.append('phone', data.phone);
         if (data.rut)      formData.append('rut', data.rut);
-        if (data.regionId) formData.append('regionId', data.regionId);
-        if (data.comunaId) formData.append('comunaId', data.comunaId);
+        if (data.regionId)      formData.append('regionId', data.regionId);
+        if (data.comunaId)      formData.append('comunaId', data.comunaId);
+        if (data.razonSocial)   formData.append('razonSocial', data.razonSocial);
+        if (data.giro)          formData.append('giro', data.giro);
+        if (data.direccionLegal) formData.append('direccionLegal', data.direccionLegal);
         formData.append('patenteFile', patenteFile);
         await authApi.registerOrganization(formData);
         setRegisteredPending(true);
