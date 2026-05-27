@@ -34,7 +34,7 @@ export default function CampaignCard({ campaign }) {
           <div className="flex items-center gap-1 text-xs text-gray-400">
             <MapPinIcon className="w-3.5 h-3.5" />
             <span>
-              {campaign.comuna?.nombre ?? ''}{campaign.region ? `, ${campaign.region.nombre ?? campaign.region}` : ''}
+              {campaign.comuna?.nombre ?? campaign.comuna?.name ?? ''}{campaign.region ? `, ${campaign.region.nombre ?? campaign.region.name ?? campaign.region}` : ''}
             </span>
           </div>
         )}

@@ -31,7 +31,15 @@ export default function LoginPage() {
       else if (user.roles?.includes('ROLE_BENEFICIARIO')) navigate('/beneficiary/campaign', { replace: true });
       else navigate(from, { replace: true });
     } catch (err) {
-      toast.error(err.response?.data?.message ?? 'Credenciales incorrectas');
+      if (!err.response) {
+        toast.error('No se puede conectar con el servidor. Verifica tu conexión.');
+      } else if (err.response.status === 401) {
+        toast.error('Correo o contraseña incorrectos.');
+      } else if (err.response.status === 500) {
+        toast.error('Error en el servidor. Intenta más tarde.');
+      } else {
+        toast.error(err.response.data?.message ?? 'Error al iniciar sesión.');
+      }
     } finally {
       setLoading(false);
     }

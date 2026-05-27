@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { authApi, usersApi } from '../../api';
+import { isValidRut } from '../../utils/rutValidator';
 import {
   HeartIcon,
   ClockIcon,
@@ -39,13 +40,15 @@ export default function RegisterPage() {
     }
   }, [regionId]);
 
-  const onSubmit = async (data) => {
+  const onSubmit = async (rawData) => {
     if (role === 'organization' && !patenteFile) {
       toast.error('Debes subir la Patente Municipal para registrar tu empresa.');
       return;
     }
 
     setLoading(true);
+    const { terms, ...data } = rawData;
+    if (data.rut) data.rut = data.rut.replace(/\./g, '').trim();
     try {
       if (role === 'donante') {
         await authApi.register({ ...data, roleId: 2 });
@@ -227,8 +230,12 @@ export default function RegisterPage() {
               <div>
                 <label className="label">RUT</label>
                 <input
-                  {...register('rut', { required: 'El RUT es requerido' })}
-                  placeholder="12.345.678-9"
+                  {...register('rut', {
+                    required: 'El RUT es requerido',
+                    pattern: { value: /^\d{1,2}\.?\d{3}\.?\d{3}-[\dkK]$/, message: 'Formato inválido (ej: 12345678-9)' },
+                    validate: (v) => isValidRut(v) || 'RUT inválido (dígito verificador incorrecto)',
+                  })}
+                  placeholder="12345678-9"
                   className="input-field"
                 />
                 {errors.rut && <p className="text-xs text-danger-600 mt-1">{errors.rut.message}</p>}
@@ -256,7 +263,7 @@ export default function RegisterPage() {
                   <select {...register('regionId')} className="input-field">
                     <option value="">Selecciona región</option>
                     {regions.map((r) => (
-                      <option key={r.id} value={r.id}>{r.nombre}</option>
+                      <option key={r.id} value={r.id}>{r.nombre ?? r.name}</option>
                     ))}
                   </select>
                 </div>
@@ -265,7 +272,7 @@ export default function RegisterPage() {
                   <select {...register('comunaId')} className="input-field" disabled={!regionId}>
                     <option value="">Selecciona comuna</option>
                     {comunas.map((c) => (
-                      <option key={c.id} value={c.id}>{c.nombre}</option>
+                      <option key={c.id} value={c.id}>{c.nombre ?? c.name}</option>
                     ))}
                   </select>
                 </div>
@@ -298,6 +305,7 @@ export default function RegisterPage() {
               </>
             )}
 
+<<<<<<< HEAD
             {/* Patente Municipal – Empresa */}
             {role === 'organization' && (
               <div className="sm:col-span-2">
@@ -340,6 +348,54 @@ export default function RegisterPage() {
                   Este documento es necesario para verificar tu empresa ante el administrador.
                 </p>
               </div>
+=======
+            {role === 'organization' && (
+              <>
+                <div>
+                  <label className="label">RUT de la empresa</label>
+                  <input
+                    {...register('rut', {
+                      required: 'El RUT de la empresa es obligatorio',
+                      pattern: { value: /^\d{1,2}\.?\d{3}\.?\d{3}-[\dkK]$/, message: 'Formato inválido (ej: 12345678-9)' },
+                      validate: (v) => isValidRut(v) || 'RUT inválido (dígito verificador incorrecto)',
+                    })}
+                    placeholder="12345678-9"
+                    className="input-field"
+                  />
+                  {errors.rut && <p className="text-xs text-danger-600 mt-1">{errors.rut.message}</p>}
+                </div>
+                <div>
+                  <label className="label">Razón social</label>
+                  <input
+                    {...register('razonSocial', {
+                      required: 'La razón social es obligatoria',
+                      maxLength: { value: 200, message: 'Máximo 200 caracteres' },
+                    })}
+                    placeholder="Empresa S.A."
+                    className="input-field"
+                  />
+                  {errors.razonSocial && <p className="text-xs text-danger-600 mt-1">{errors.razonSocial.message}</p>}
+                </div>
+                <div>
+                  <label className="label">Giro comercial (opcional)</label>
+                  <input
+                    {...register('giro', { maxLength: { value: 200, message: 'Máximo 200 caracteres' } })}
+                    placeholder="Comercio al por menor"
+                    className="input-field"
+                  />
+                  {errors.giro && <p className="text-xs text-danger-600 mt-1">{errors.giro.message}</p>}
+                </div>
+                <div>
+                  <label className="label">Dirección legal (opcional)</label>
+                  <input
+                    {...register('direccionLegal', { maxLength: { value: 400, message: 'Máximo 400 caracteres' } })}
+                    placeholder="Av. Providencia 123, Santiago"
+                    className="input-field"
+                  />
+                  {errors.direccionLegal && <p className="text-xs text-danger-600 mt-1">{errors.direccionLegal.message}</p>}
+                </div>
+              </>
+>>>>>>> a7f144d3bb1c44c5fc02804054332846e9559b63
             )}
           </div>
 

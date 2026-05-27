@@ -1,0 +1,22 @@
+name: donatech-frontend
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: donatech-frontend
+    image: donatech/frontend:latest
+    ports:
+      - "80:80"
+    environment:
+      # IP pública de la EC2 del backend con el puerto del API Gateway
+      # Cambiar por la IP real antes de levantar
+      BACKEND_URL: ${BACKEND_URL:-http://localhost:8080}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s

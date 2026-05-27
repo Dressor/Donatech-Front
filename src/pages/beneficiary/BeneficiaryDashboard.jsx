@@ -4,7 +4,7 @@ import { catalogApi, ordersApi } from '../../api';
 import { Link } from 'react-router-dom';
 import StatusBadge from '../../components/ui/StatusBadge';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import { HeartIcon, PlusCircleIcon, TruckIcon } from '@heroicons/react/24/outline';
+import { HeartIcon, PlusCircleIcon, TruckIcon, MegaphoneIcon } from '@heroicons/react/24/outline';
 
 export default function BeneficiaryDashboard() {
   const { user } = useAuth();
@@ -13,6 +13,13 @@ export default function BeneficiaryDashboard() {
     queryKey: ['beneficiary-orders'],
     queryFn: () => ordersApi.getAll(),
     select: (r) => r.data?.slice(0, 5) ?? [],
+  });
+
+  const { data: campaigns = [], isLoading: campLoading } = useQuery({
+    queryKey: ['my-campaigns', user?.id],
+    queryFn: () => catalogApi.getCampaignsByBeneficiary(user.id),
+    select: (r) => r.data ?? [],
+    enabled: !!user?.id,
   });
 
   return (
@@ -27,6 +34,37 @@ export default function BeneficiaryDashboard() {
           <h1 className="text-2xl font-bold mb-1">Bienvenido/a</h1>
           <p className="text-blue-100">{user?.email}</p>
         </div>
+      </div>
+
+      {/* My campaign */}
+      <div className="card mb-8">
+        <div className="flex items-center gap-2 mb-4">
+          <MegaphoneIcon className="w-5 h-5 text-primary-600" />
+          <h2 className="font-semibold text-gray-900">Mi campaña</h2>
+        </div>
+        {campLoading ? (
+          <LoadingSpinner size="sm" />
+        ) : !campaigns[0] ? (
+          <div className="flex items-center justify-between">
+            <p className="text-sm text-gray-400">No tienes campaña activa.</p>
+            <Link to="/beneficiary/campaign" className="btn-primary text-sm">Crear campaña</Link>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <p className="font-medium text-gray-900">{campaigns[0].titulo}</p>
+              <p className="text-xs text-gray-500 mt-0.5">{campaigns[0].motivo}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <StatusBadge status={campaigns[0].estado} />
+              {(campaigns[0].estado === 'ACTIVA' || campaigns[0].estado === 'EN_VALIDACION') && (
+                <Link to={`/campaigns/${campaigns[0].id}`} className="text-sm text-primary-600 hover:underline">
+                  Ver detalle →
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Quick actions */}
