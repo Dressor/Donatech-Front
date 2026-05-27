@@ -22,7 +22,7 @@ export default function AdminDashboard() {
 
   const { data: pendingTickets = [] } = useQuery({
     queryKey: ['pending-tickets'],
-    queryFn: () => supportsApi.getByStatus('ABIERTO'),
+    queryFn: () => supportsApi.getByStatus('PENDIENTE'),
     select: (r) => r.data ?? [],
   });
 
@@ -68,7 +68,7 @@ export default function AdminDashboard() {
     },
     {
       label: 'Campañas activas',
-      value: campaigns.filter((c) => c.status === 'ACTIVA').length,
+      value: campaigns.filter((c) => c.estado === 'ACTIVA').length,
       icon: ArrowTrendingUpIcon,
       color: 'text-green-600 bg-green-50',
       link: '/campaigns',

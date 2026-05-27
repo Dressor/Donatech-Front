@@ -20,6 +20,7 @@ export default function BeneficiaryDashboard() {
     queryFn: () => catalogApi.getCampaignsByBeneficiary(user.id),
     select: (r) => r.data ?? [],
     enabled: !!user?.id,
+    refetchOnMount: 'always',
   });
 
   return (
