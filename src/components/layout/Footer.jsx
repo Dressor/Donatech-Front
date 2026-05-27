@@ -61,7 +61,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-primary-800 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
-          <p>© 2026 Donatech · Plataforma Solidaria de Transparencia y Acreditación</p>
+          <p>© 2026 Donatech · Plataforma Solidaria de Donaciones y Acreditación</p>
           <p>
             Desarrollado con{' '}
             <HeartIcon className="w-3 h-3 text-danger-500 inline" /> por el equipo Donatech
