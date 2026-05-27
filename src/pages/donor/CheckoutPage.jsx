@@ -42,7 +42,7 @@ export default function CheckoutPage() {
       const payload = {
         userEmail: user.email,
         campaignId: campaignId || undefined,
-        items: items.map((i) => ({ kitId: i.kitId, cantidad: i.cantidad })),
+        items: items.map((i) => ({ kitId: i.kitId, quantity: i.cantidad })),
         couponCode: coupon || undefined,
       };
       const { data } = await ordersApi.createDonation(payload);
