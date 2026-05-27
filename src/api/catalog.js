@@ -32,4 +32,6 @@ export const catalogApi = {
   getCampaignsByBeneficiary: (id) => api.get(`/api/campaigns/by-beneficiary/${id}`),
   createCampaign: (data) => api.post('/api/campaigns', data),
   closeCampaign: (id) => api.patch(`/api/campaigns/${id}/close`),
+  addKitToCampaign: (campaignId, data) => api.post(`/api/campaigns/${campaignId}/kits`, data),
+  removeKitFromCampaign: (campaignId, kitId) => api.delete(`/api/campaigns/${campaignId}/kits/${kitId}`),
 };

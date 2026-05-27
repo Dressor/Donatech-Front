@@ -58,10 +58,16 @@ export default function BeneficiaryDashboard() {
             <div className="flex items-center gap-3">
               <StatusBadge status={campaigns[0].estado} />
               {(campaigns[0].estado === 'ACTIVA' || campaigns[0].estado === 'EN_VALIDACION') && (
-                <Link to={`/campaigns/${campaigns[0].id}`} className="text-sm text-primary-600 hover:underline">
-                  Ver detalle →
+                <Link
+                  to={`/beneficiary/campaign/${campaigns[0].id}`}
+                  className="btn-primary text-sm"
+                >
+                  Gestionar kits
                 </Link>
               )}
+              <Link to={`/campaigns/${campaigns[0].id}`} className="text-sm text-primary-600 hover:underline">
+                Ver detalle →
+              </Link>
             </div>
           </div>
         )}

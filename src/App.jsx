@@ -24,6 +24,7 @@ import OrderTrackingPage from './pages/donor/OrderTrackingPage';
 // Beneficiary
 import BeneficiaryDashboard from './pages/beneficiary/BeneficiaryDashboard';
 import CreateCampaignPage from './pages/beneficiary/CreateCampaignPage';
+import BeneficiaryCampaignPage from './pages/beneficiary/BeneficiaryCampaignPage';
 
 // Admin
 import AdminDashboard from './pages/admin/AdminDashboard';
@@ -111,6 +112,14 @@ function App() {
                   element={
                     <ProtectedRoute allowedRoles={['ROLE_BENEFICIARIO', 'ROLE_ORGANIZACION']}>
                       <CreateCampaignPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="beneficiary/campaign/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={['ROLE_BENEFICIARIO', 'ROLE_ORGANIZACION']}>
+                      <BeneficiaryCampaignPage />
                     </ProtectedRoute>
                   }
                 />
