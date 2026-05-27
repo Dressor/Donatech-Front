@@ -242,19 +242,6 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* RUT – Empresa */}
-            {role === 'organization' && (
-              <div>
-                <label className="label">RUT de la empresa</label>
-                <input
-                  {...register('rut', { required: 'El RUT de la empresa es requerido' })}
-                  placeholder="76.123.456-7"
-                  className="input-field"
-                />
-                {errors.rut && <p className="text-xs text-danger-600 mt-1">{errors.rut.message}</p>}
-              </div>
-            )}
-
             {/* Región y Comuna */}
             {(role === 'beneficiary' || role === 'organization') && (
               <>
@@ -305,50 +292,7 @@ export default function RegisterPage() {
               </>
             )}
 
-<<<<<<< HEAD
-            {/* Patente Municipal – Empresa */}
-            {role === 'organization' && (
-              <div className="sm:col-span-2">
-                <label className="label">
-                  Patente Municipal <span className="text-danger-600">*</span>
-                </label>
-                <div
-                  className={`relative border-2 border-dashed rounded-xl p-5 transition-colors cursor-pointer ${
-                    patenteFile
-                      ? 'border-primary-400 bg-primary-50'
-                      : 'border-gray-200 hover:border-gray-300 bg-white'
-                  }`}
-                >
-                  <input
-                    type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onChange={(e) => setPatenteFile(e.target.files?.[0] ?? null)}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                  <div className="text-center pointer-events-none">
-                    <ArrowUpTrayIcon
-                      className={`w-8 h-8 mx-auto mb-2 ${
-                        patenteFile ? 'text-primary-500' : 'text-gray-400'
-                      }`}
-                    />
-                    {patenteFile ? (
-                      <>
-                        <p className="text-sm font-medium text-primary-700">{patenteFile.name}</p>
-                        <p className="text-xs text-gray-400 mt-0.5">Haz clic para cambiar el archivo</p>
-                      </>
-                    ) : (
-                      <>
-                        <p className="text-sm text-gray-600">Sube tu Patente Municipal aquí</p>
-                        <p className="text-xs text-gray-400 mt-0.5">PDF, JPG o PNG · Máximo 10 MB</p>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <p className="text-xs text-gray-400 mt-1.5">
-                  Este documento es necesario para verificar tu empresa ante el administrador.
-                </p>
-              </div>
-=======
+            {/* Campos específicos de Empresa/Organización */}
             {role === 'organization' && (
               <>
                 <div>
@@ -394,8 +338,47 @@ export default function RegisterPage() {
                   />
                   {errors.direccionLegal && <p className="text-xs text-danger-600 mt-1">{errors.direccionLegal.message}</p>}
                 </div>
+                <div className="sm:col-span-2">
+                  <label className="label">
+                    Patente Municipal <span className="text-danger-600">*</span>
+                  </label>
+                  <div
+                    className={`relative border-2 border-dashed rounded-xl p-5 transition-colors cursor-pointer ${
+                      patenteFile
+                        ? 'border-primary-400 bg-primary-50'
+                        : 'border-gray-200 hover:border-gray-300 bg-white'
+                    }`}
+                  >
+                    <input
+                      type="file"
+                      accept=".pdf,.jpg,.jpeg,.png"
+                      onChange={(e) => setPatenteFile(e.target.files?.[0] ?? null)}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <div className="text-center pointer-events-none">
+                      <ArrowUpTrayIcon
+                        className={`w-8 h-8 mx-auto mb-2 ${
+                          patenteFile ? 'text-primary-500' : 'text-gray-400'
+                        }`}
+                      />
+                      {patenteFile ? (
+                        <>
+                          <p className="text-sm font-medium text-primary-700">{patenteFile.name}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">Haz clic para cambiar el archivo</p>
+                        </>
+                      ) : (
+                        <>
+                          <p className="text-sm text-gray-600">Sube tu Patente Municipal aquí</p>
+                          <p className="text-xs text-gray-400 mt-0.5">PDF, JPG o PNG · Máximo 10 MB</p>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-400 mt-1.5">
+                    Este documento es necesario para verificar tu empresa ante el administrador.
+                  </p>
+                </div>
               </>
->>>>>>> a7f144d3bb1c44c5fc02804054332846e9559b63
             )}
           </div>
 
