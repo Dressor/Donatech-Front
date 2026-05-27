@@ -104,7 +104,7 @@ export default function CheckoutPage() {
               {items.map((item) => (
                 <div key={item.kitId} className="flex justify-between text-sm">
                   <span className="text-gray-700">{item.kit.nombre} × {item.cantidad}</span>
-                  <span className="font-medium">${((item.kit.precioBase ?? 0) * item.cantidad).toLocaleString('es-CL')}</span>
+                  <span className="font-medium">${((item.kit.precioEstimado ?? item.kit.precioBase ?? 0) * item.cantidad).toLocaleString('es-CL')}</span>
                 </div>
               ))}
             </div>

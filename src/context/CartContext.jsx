@@ -38,7 +38,7 @@ export function CartProvider({ children }) {
   }, []);
 
   const total = items.reduce(
-    (sum, i) => sum + (i.kit?.precioBase ?? 0) * i.cantidad,
+    (sum, i) => sum + (i.kit?.precioEstimado ?? i.kit?.precioBase ?? 0) * i.cantidad,
     0
   );
 

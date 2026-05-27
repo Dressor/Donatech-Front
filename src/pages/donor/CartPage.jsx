@@ -46,7 +46,7 @@ export default function CartPage() {
               <div className="flex-1 min-w-0">
                 <h3 className="font-semibold text-gray-900">{item.kit.nombre}</h3>
                 <p className="text-sm text-primary-600 font-medium">
-                  ${(item.kit.precioBase ?? 0).toLocaleString('es-CL')} CLP c/u
+                  ${(item.kit.precioEstimado ?? item.kit.precioBase ?? 0).toLocaleString('es-CL')} CLP c/u
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -84,7 +84,7 @@ export default function CartPage() {
                   {item.kit.nombre} × {item.cantidad}
                 </span>
                 <span className="font-medium">
-                  ${((item.kit.precioBase ?? 0) * item.cantidad).toLocaleString('es-CL')}
+                  ${((item.kit.precioEstimado ?? item.kit.precioBase ?? 0) * item.cantidad).toLocaleString('es-CL')}
                 </span>
               </div>
             ))}
