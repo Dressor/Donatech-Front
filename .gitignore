@@ -1,3 +1,6 @@
+# Variables de entorno (nunca subir al repo)
+.env
+
 # Logs
 logs
 *.log
