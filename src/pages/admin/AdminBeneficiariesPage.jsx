@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '../../api';
+import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import EmptyState from '../../components/ui/EmptyState';
 import toast from 'react-hot-toast';
@@ -17,6 +18,7 @@ export default function AdminBeneficiariesPage() {
   const [selectedId, setSelectedId] = useState(null);
   const [motivo, setMotivo] = useState('');
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   /* ── Queries ── */
   const { data: pendingBeneficiaries = [], isLoading: loadingBen } = useQuery({
@@ -33,7 +35,7 @@ export default function AdminBeneficiariesPage() {
 
   /* ── Mutaciones beneficiarios ── */
   const approveBenMutation = useMutation({
-    mutationFn: (id) => usersApi.verifyBeneficiary(id, { verified: true, motivo: '' }),
+    mutationFn: (id) => usersApi.verifyBeneficiary(id, { estado: 'VERIFICADO', verificadorId: user?.userId }),
     onSuccess: () => {
       toast.success('Beneficiario aprobado');
       queryClient.invalidateQueries(['pending-beneficiaries']);
@@ -42,7 +44,7 @@ export default function AdminBeneficiariesPage() {
   });
 
   const rejectBenMutation = useMutation({
-    mutationFn: ({ id, motivo }) => usersApi.verifyBeneficiary(id, { verified: false, motivo }),
+    mutationFn: ({ id, motivo }) => usersApi.verifyBeneficiary(id, { estado: 'RECHAZADO', verificadorId: user?.userId, motivoRechazo: motivo }),
     onSuccess: () => {
       toast.success('Beneficiario rechazado');
       queryClient.invalidateQueries(['pending-beneficiaries']);
@@ -54,7 +56,7 @@ export default function AdminBeneficiariesPage() {
 
   /* ── Mutaciones empresas ── */
   const approveOrgMutation = useMutation({
-    mutationFn: (id) => usersApi.verifyCompany(id, { verified: true }),
+    mutationFn: (id) => usersApi.verifyCompany(id, { estado: 'VERIFICADO', verificadorId: user?.userId }),
     onSuccess: () => {
       toast.success('Empresa aprobada');
       queryClient.invalidateQueries(['pending-companies']);
@@ -63,7 +65,7 @@ export default function AdminBeneficiariesPage() {
   });
 
   const rejectOrgMutation = useMutation({
-    mutationFn: ({ id, motivo }) => usersApi.verifyCompany(id, { verified: false, motivo }),
+    mutationFn: ({ id, motivo }) => usersApi.verifyCompany(id, { estado: 'RECHAZADO', verificadorId: user?.userId, motivoRechazo: motivo }),
     onSuccess: () => {
       toast.success('Empresa rechazada');
       queryClient.invalidateQueries(['pending-companies']);

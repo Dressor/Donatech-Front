@@ -28,8 +28,8 @@ export const usersApi = {
   createCompany: (data) => api.post('/api/users/company', data),
   getCompanyByUser: (userId) => api.get(`/api/users/company/${userId}`),
 
-  // Validación de empresas (Patente Municipal)
-  getAllCompanies: () => api.get('/api/companies'),
-  getCompaniesByStatus: (status) => api.get('/api/companies/by-status', { params: { status } }),
-  verifyCompany: (id, data) => api.patch(`/api/companies/${id}/verify`, data),
+  // Validación de empresas (Patente Municipal) → usa /api/beneficiaries
+  getAllCompanies: () => api.get('/api/beneficiaries'),
+  getCompaniesByStatus: (estado) => api.get('/api/beneficiaries/by-estado', { params: { estado } }),
+  verifyCompany: (id, data) => api.patch(`/api/beneficiaries/${id}/verify`, data),
 };
