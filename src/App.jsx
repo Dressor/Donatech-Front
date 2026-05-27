@@ -118,7 +118,7 @@ function App() {
                 <Route
                   path="beneficiary/campaign/:id"
                   element={
-                    <ProtectedRoute allowedRoles={['ROLE_BENEFICIARIO', 'ROLE_ORGANIZACION']}>
+                    <ProtectedRoute allowedRoles={['ROLE_BENEFICIARIO', 'ROLE_ORGANIZACION', 'ROLE_ADMIN']}>
                       <BeneficiaryCampaignPage />
                     </ProtectedRoute>
                   }

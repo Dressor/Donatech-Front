@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { catalogApi } from '../../api';
 import { useForm } from 'react-hook-form';
+import { Link } from 'react-router-dom';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import StatusBadge from '../../components/ui/StatusBadge';
 import toast from 'react-hot-toast';
@@ -160,14 +161,24 @@ export default function AdminCatalogPage() {
                         <td className="px-4 py-3 font-medium text-gray-900 max-w-xs truncate">{c.titulo}</td>
                         <td className="px-4 py-3"><StatusBadge status={c.estado} /></td>
                         <td className="px-4 py-3">
-                          {c.estado === 'ACTIVA' && (
-                            <button
-                              onClick={() => closeMutation.mutate(c.id)}
-                              className="text-xs px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200"
-                            >
-                              Cerrar
-                            </button>
-                          )}
+                          <div className="flex items-center gap-2">
+                            {(c.estado === 'ACTIVA' || c.estado === 'EN_VALIDACION') && (
+                              <Link
+                                to={`/beneficiary/campaign/${c.id}`}
+                                className="text-xs px-2.5 py-1 rounded-lg bg-blue-50 text-primary-700 hover:bg-blue-100 transition-colors"
+                              >
+                                Asignar kit
+                              </Link>
+                            )}
+                            {c.estado === 'ACTIVA' && (
+                              <button
+                                onClick={() => closeMutation.mutate(c.id)}
+                                className="text-xs px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                              >
+                                Cerrar
+                              </button>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     ))}
