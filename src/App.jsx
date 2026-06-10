@@ -36,6 +36,7 @@ import AdminCatalogPage from './pages/admin/AdminCatalogPage';
 import AdminBeneficiariesPage from './pages/admin/AdminBeneficiariesPage';
 import AdminProductsPage from './pages/admin/AdminProductsPage';
 import AdminTransferConfigPage from './pages/admin/AdminTransferConfigPage';
+import AdminCampaignKitsPage from './pages/admin/AdminCampaignKitsPage';
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -201,6 +202,14 @@ function App() {
                   element={
                     <ProtectedRoute allowedRoles={['ROLE_ADMIN']}>
                       <AdminTransferConfigPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="admin/campaigns/:id/kits"
+                  element={
+                    <ProtectedRoute allowedRoles={['ROLE_ADMIN']}>
+                      <AdminCampaignKitsPage />
                     </ProtectedRoute>
                   }
                 />

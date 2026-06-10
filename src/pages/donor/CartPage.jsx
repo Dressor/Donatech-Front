@@ -29,7 +29,7 @@ export default function CartPage() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="flex items-center justify-between mb-8">
         <h1 className="section-title">Carrito de donación</h1>
-        <button onClick={clear} className="text-sm text-danger-600 hover:text-danger-700 font-medium flex items-center gap-1">
+        <button onClick={() => { if (window.confirm('¿Vaciar el carrito? Se eliminarán todos los kits seleccionados.')) clear(); }} className="text-sm text-danger-600 hover:text-danger-700 font-medium flex items-center gap-1">
           <TrashIcon className="w-4 h-4" />
           Vaciar carrito
         </button>
@@ -64,7 +64,7 @@ export default function CartPage() {
                   <PlusIcon className="w-3.5 h-3.5 text-gray-600" />
                 </button>
                 <button
-                  onClick={() => removeItem(item.kitId)}
+                  onClick={() => { if (window.confirm(`¿Quitar "${item.kit.nombre}" del carrito?`)) removeItem(item.kitId); }}
                   className="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center hover:bg-red-100 ml-1 transition-colors"
                 >
                   <TrashIcon className="w-3.5 h-3.5 text-danger-600" />

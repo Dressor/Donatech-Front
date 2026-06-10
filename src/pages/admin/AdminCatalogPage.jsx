@@ -676,7 +676,7 @@ export default function AdminCatalogPage() {
                           <div className="flex items-center gap-2">
                             {(c.estado === 'ACTIVA' || c.estado === 'EN_VALIDACION') && (
                               <Link
-                                to={`/beneficiary/campaign/${c.id}`}
+                                to={`/admin/campaigns/${c.id}/kits`}
                                 className="text-xs px-2.5 py-1 rounded-lg bg-blue-50 text-primary-700 hover:bg-blue-100 transition-colors"
                               >
                                 Asignar kit
@@ -684,7 +684,10 @@ export default function AdminCatalogPage() {
                             )}
                             {c.estado === 'ACTIVA' && (
                               <button
-                                onClick={() => closeMutation.mutate(c.id)}
+                                onClick={() => {
+                                  if (window.confirm(`¿Cerrar la campaña "${c.titulo}"? Esta acción no se puede deshacer.`))
+                                    closeMutation.mutate(c.id);
+                                }}
                                 className="text-xs px-2.5 py-1 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
                               >
                                 Cerrar

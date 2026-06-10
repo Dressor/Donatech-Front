@@ -14,27 +14,24 @@ import {
   ArrowLeftIcon,
 } from '@heroicons/react/24/outline';
 
-export default function BeneficiaryCampaignPage() {
+export default function AdminCampaignKitsPage() {
   const { id } = useParams();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
-  /* ── Campaña ── */
   const { data: campaign, isLoading: loadingCampaign } = useQuery({
     queryKey: ['campaign', id],
     queryFn: () => catalogApi.getCampaignById(id),
     select: (r) => r.data,
   });
 
-  /* ── Kits disponibles ── */
   const { data: kits = [], isLoading: loadingKits } = useQuery({
     queryKey: ['kits'],
     queryFn: () => catalogApi.getKits(),
     select: (r) => r.data ?? [],
   });
 
-  /* ── Agregar kit ── */
   const addMutation = useMutation({
     mutationFn: (data) =>
       catalogApi.addKitToCampaign(id, {
@@ -50,7 +47,6 @@ export default function BeneficiaryCampaignPage() {
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 
-  /* ── Eliminar kit ── */
   const removeMutation = useMutation({
     mutationFn: (kitId) => catalogApi.removeKitFromCampaign(id, kitId),
     onSuccess: () => {
@@ -64,7 +60,7 @@ export default function BeneficiaryCampaignPage() {
   if (!campaign) return (
     <div className="max-w-3xl mx-auto px-4 py-10 text-center">
       <p className="text-gray-500">Campaña no encontrada.</p>
-      <Link to="/beneficiary/dashboard" className="btn-primary mt-4 inline-block">Volver</Link>
+      <Link to="/admin/catalog" className="btn-primary mt-4 inline-block">Volver a catálogo</Link>
     </div>
   );
 
@@ -72,14 +68,13 @@ export default function BeneficiaryCampaignPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      {/* Header */}
       <div className="mb-6">
         <Link
-          to="/beneficiary/dashboard"
+          to="/admin/catalog"
           className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 mb-4"
         >
           <ArrowLeftIcon className="w-4 h-4" />
-          Volver al dashboard
+          Volver a catálogo
         </Link>
         <div className="flex items-start justify-between flex-wrap gap-3">
           <div>
@@ -90,7 +85,6 @@ export default function BeneficiaryCampaignPage() {
         </div>
       </div>
 
-      {/* Descripción */}
       <div className="card mb-6">
         <p className="text-sm text-gray-700 leading-relaxed">{campaign.descripcion}</p>
         {campaign.observaciones && (
@@ -98,7 +92,6 @@ export default function BeneficiaryCampaignPage() {
         )}
       </div>
 
-      {/* Kits asignados */}
       <div className="card mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
@@ -116,7 +109,6 @@ export default function BeneficiaryCampaignPage() {
           )}
         </div>
 
-        {/* Formulario agregar kit */}
         {showForm && isEditable && (
           <form
             onSubmit={handleSubmit((data) => addMutation.mutate(data))}
@@ -176,7 +168,6 @@ export default function BeneficiaryCampaignPage() {
           </form>
         )}
 
-        {/* Lista de kits */}
         {!campaign.kits || campaign.kits.length === 0 ? (
           <p className="text-sm text-gray-400 text-center py-4">
             No hay kits asignados a esta campaña.
@@ -216,7 +207,6 @@ export default function BeneficiaryCampaignPage() {
         )}
       </div>
 
-      {/* Estado no editable */}
       {!isEditable && (
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm text-yellow-700">
           Esta campaña está en estado <strong>{campaign.estado}</strong> — no se pueden modificar los kits.

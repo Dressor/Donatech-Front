@@ -83,9 +83,11 @@ export default function AdminUsersPage() {
                     </td>
                     <td className="px-4 py-3">
                       <button
-                        onClick={() =>
-                          statusMutation.mutate({ id: u.id, status: u.status === 1 ? 0 : 1 })
-                        }
+                        onClick={() => {
+                          const accion = u.status === 1 ? 'desactivar' : 'activar';
+                          if (window.confirm(`¿${accion.charAt(0).toUpperCase() + accion.slice(1)} al usuario ${u.email}?`))
+                            statusMutation.mutate({ id: u.id, status: u.status === 1 ? 0 : 1 });
+                        }}
                         className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
                           u.status === 1
                             ? 'bg-red-50 text-danger-600 hover:bg-red-100'
