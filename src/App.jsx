@@ -1,7 +1,9 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, QueryClientProvider, QueryCache } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
+import { getErrorMessage } from './utils/errorHandler';
 
 import MainLayout from './components/layout/MainLayout';
 import ProtectedRoute from './components/layout/ProtectedRoute';
@@ -32,8 +34,13 @@ import BackofficePage from './pages/admin/BackofficePage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminCatalogPage from './pages/admin/AdminCatalogPage';
 import AdminBeneficiariesPage from './pages/admin/AdminBeneficiariesPage';
+import AdminProductsPage from './pages/admin/AdminProductsPage';
+import AdminTransferConfigPage from './pages/admin/AdminTransferConfigPage';
 
 const queryClient = new QueryClient({
+  queryCache: new QueryCache({
+    onError: (err) => toast.error(getErrorMessage(err)),
+  }),
   defaultOptions: {
     queries: { staleTime: 1000 * 60, retry: 1 },
   },
@@ -178,6 +185,22 @@ function App() {
                   element={
                     <ProtectedRoute allowedRoles={['ROLE_ADMIN']}>
                       <AdminBeneficiariesPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="admin/products"
+                  element={
+                    <ProtectedRoute allowedRoles={['ROLE_ADMIN']}>
+                      <AdminProductsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="admin/transfer-config"
+                  element={
+                    <ProtectedRoute allowedRoles={['ROLE_ADMIN']}>
+                      <AdminTransferConfigPage />
                     </ProtectedRoute>
                   }
                 />

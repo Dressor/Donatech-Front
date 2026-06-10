@@ -9,7 +9,7 @@ import { MagnifyingGlassIcon, HeartIcon } from '@heroicons/react/24/outline';
 export default function CampaignsPage() {
   const [search, setSearch] = useState('');
 
-  const { data: campaigns = [], isLoading } = useQuery({
+  const { data: campaigns = [], isLoading, isError } = useQuery({
     queryKey: ['campaigns'],
     queryFn: () => catalogApi.getActiveCampaigns(),
     select: (r) => r.data ?? [],
@@ -42,7 +42,11 @@ export default function CampaignsPage() {
         />
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <div className="text-center py-12 text-red-600">
+          No se pudieron cargar las campañas. Intenta recargar la página.
+        </div>
+      ) : isLoading ? (
         <LoadingSpinner text="Cargando campañas..." />
       ) : filtered.length === 0 ? (
         <EmptyState

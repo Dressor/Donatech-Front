@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '../../api';
+import { getErrorMessage } from '../../utils/errorHandler';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import EmptyState from '../../components/ui/EmptyState';
@@ -24,13 +25,13 @@ export default function AdminBeneficiariesPage() {
   const { data: pendingBeneficiaries = [], isLoading: loadingBen } = useQuery({
     queryKey: ['pending-beneficiaries'],
     queryFn: () => usersApi.getBeneficiariesByStatus('PENDIENTE'),
-    select: (r) => r.data ?? [],
+    select: (r) => (r.data ?? []).filter((b) => b.user?.role?.name === 'ROLE_BENEFICIARIO'),
   });
 
   const { data: pendingCompanies = [], isLoading: loadingOrg } = useQuery({
     queryKey: ['pending-companies'],
     queryFn: () => usersApi.getCompaniesByStatus('PENDIENTE'),
-    select: (r) => r.data ?? [],
+    select: (r) => (r.data ?? []).filter((c) => c.user?.role?.name === 'ROLE_ORGANIZACION'),
   });
 
   /* ── Mutaciones beneficiarios ── */
@@ -39,8 +40,9 @@ export default function AdminBeneficiariesPage() {
     onSuccess: () => {
       toast.success('Beneficiario aprobado');
       queryClient.invalidateQueries(['pending-beneficiaries']);
+      queryClient.invalidateQueries(['pending-companies']);
     },
-    onError: () => toast.error('Error al aprobar el beneficiario'),
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   const rejectBenMutation = useMutation({
@@ -48,10 +50,11 @@ export default function AdminBeneficiariesPage() {
     onSuccess: () => {
       toast.success('Beneficiario rechazado');
       queryClient.invalidateQueries(['pending-beneficiaries']);
+      queryClient.invalidateQueries(['pending-companies']);
       setSelectedId(null);
       setMotivo('');
     },
-    onError: () => toast.error('Error al rechazar el beneficiario'),
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   /* ── Mutaciones empresas ── */
@@ -60,8 +63,9 @@ export default function AdminBeneficiariesPage() {
     onSuccess: () => {
       toast.success('Empresa aprobada');
       queryClient.invalidateQueries(['pending-companies']);
+      queryClient.invalidateQueries(['pending-beneficiaries']);
     },
-    onError: () => toast.error('Error al aprobar la empresa'),
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   const rejectOrgMutation = useMutation({
@@ -69,10 +73,11 @@ export default function AdminBeneficiariesPage() {
     onSuccess: () => {
       toast.success('Empresa rechazada');
       queryClient.invalidateQueries(['pending-companies']);
+      queryClient.invalidateQueries(['pending-beneficiaries']);
       setSelectedId(null);
       setMotivo('');
     },
-    onError: () => toast.error('Error al rechazar la empresa'),
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   /* ── Helpers ── */
@@ -94,7 +99,7 @@ export default function AdminBeneficiariesPage() {
       {/* Pestañas */}
       <div className="flex gap-1 mb-6 border-b border-gray-200">
         <button
-          onClick={() => setTab('beneficiarios')}
+          onClick={() => { setTab('beneficiarios'); setSelectedId(null); setMotivo(''); }}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
             tab === 'beneficiarios'
               ? 'border-primary-600 text-primary-700'
@@ -111,7 +116,7 @@ export default function AdminBeneficiariesPage() {
         </button>
 
         <button
-          onClick={() => setTab('empresas')}
+          onClick={() => { setTab('empresas'); setSelectedId(null); setMotivo(''); }}
           className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px ${
             tab === 'empresas'
               ? 'border-primary-600 text-primary-700'

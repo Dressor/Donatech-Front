@@ -20,7 +20,7 @@ const STATES = [
 export default function OrderTrackingPage() {
   const { id } = useParams();
 
-  const { data: order, isLoading } = useQuery({
+  const { data: order, isLoading, isError, error } = useQuery({
     queryKey: ['order', id],
     queryFn: () => ordersApi.getDonationById(id),
     select: (r) => r.data,
@@ -35,6 +35,14 @@ export default function OrderTrackingPage() {
   });
 
   if (isLoading) return <LoadingSpinner text="Cargando seguimiento..." />;
+  if (isError) {
+    const is404 = error?.response?.status === 404;
+    return (
+      <div className="text-center py-20 text-gray-500">
+        {is404 ? 'Orden no encontrada.' : 'No se pudo cargar la orden. Intenta recargar la página.'}
+      </div>
+    );
+  }
   if (!order) return <div className="text-center py-20 text-gray-400">Orden no encontrada</div>;
 
   const currentIdx = STATES.findIndex((s) => s.key === (order.status ?? order.estado));

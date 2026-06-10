@@ -12,7 +12,7 @@ import { es } from 'date-fns/locale';
 export default function DonationHistoryPage() {
   const { user } = useAuth();
 
-  const { data: donations = [], isLoading } = useQuery({
+  const { data: donations = [], isLoading, isError } = useQuery({
     queryKey: ['donations', user?.email],
     queryFn: () => ordersApi.getDonationsByDonor(user.email),
     select: (r) => r.data ?? [],
@@ -26,7 +26,11 @@ export default function DonationHistoryPage() {
         <p className="text-gray-500">Historial completo de todas tus contribuciones</p>
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <div className="text-center py-12 text-red-600">
+          No se pudieron cargar las donaciones. Intenta recargar la página.
+        </div>
+      ) : isLoading ? (
         <LoadingSpinner text="Cargando donaciones..." />
       ) : donations.length === 0 ? (
         <EmptyState

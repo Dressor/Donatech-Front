@@ -43,6 +43,10 @@ export const ordersApi = {
   updateDonationStatus: (id, status, changedById) =>
     api.patch(`/api/donations/${id}/status`, null, { params: { status, changedById } }),
 
+  // Transfer config
+  getTransferConfig: () => api.get('/api/config/transfer'),
+  saveTransferConfig: (data) => api.put('/api/config/transfer', data),
+
   // Coupons
   getCoupons: () => api.get('/api/orders/coupons'),
   getCouponByCode: (code) => api.get(`/api/orders/coupons/by-code/${code}`),

@@ -12,7 +12,9 @@ services:
     environment:
       # IP pública de la EC2 del backend con el puerto del API Gateway
       # Cambiar por la IP real antes de levantar
-      BACKEND_URL: ${BACKEND_URL:-http://localhost:8080}
+      BACKEND_URL: ${BACKEND_URL:-http://host.docker.internal:8080}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:80"]

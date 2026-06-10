@@ -1,8 +1,10 @@
 import { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import { ordersApi } from '../../api';
+import { getErrorMessage } from '../../utils/errorHandler';
 import toast from 'react-hot-toast';
 import {
   BanknotesIcon,
@@ -10,15 +12,6 @@ import {
   CheckCircleIcon,
   InformationCircleIcon,
 } from '@heroicons/react/24/outline';
-
-const BANK_INFO = {
-  banco: 'Banco Estado',
-  tipo: 'Cuenta Corriente',
-  numero: '123-456-789-0',
-  rut: '76.543.210-K',
-  nombre: 'Donatech SpA',
-  email: 'donaciones@donatech.cl',
-};
 
 export default function CheckoutPage() {
   const { items, total, campaignId, clear } = useCart();
@@ -30,6 +23,12 @@ export default function CheckoutPage() {
   const [step, setStep] = useState(1);
   const [orderId, setOrderId] = useState(null);
   const fileRef = useRef();
+
+  const { data: transferConfig } = useQuery({
+    queryKey: ['transfer-config'],
+    queryFn: () => ordersApi.getTransferConfig(),
+    select: (r) => (r.data?.message ? null : r.data),
+  });
 
   if (items.length === 0) {
     navigate('/donor/cart');
@@ -50,7 +49,7 @@ export default function CheckoutPage() {
       setStep(2);
       toast.success('¡Orden creada! Ahora sube tu comprobante de pago.');
     } catch (err) {
-      toast.error(err.response?.data?.message ?? 'Error al crear la orden');
+      toast.error(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -68,7 +67,7 @@ export default function CheckoutPage() {
       setStep(3);
       toast.success('¡Comprobante enviado! Tu donación está siendo validada.');
     } catch (err) {
-      toast.error(err.response?.data?.message ?? 'Error al subir el comprobante');
+      toast.error(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -153,18 +152,46 @@ export default function CheckoutPage() {
               <BanknotesIcon className="w-5 h-5" />
               <h3 className="font-semibold">Información de pago</h3>
             </div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              {Object.entries(BANK_INFO).map(([k, v]) => (
-                <div key={k}>
-                  <p className="text-blue-200 capitalize">{k}</p>
-                  <p className="font-medium">{v}</p>
+            {transferConfig ? (
+              <div className="grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <p className="text-blue-200">Banco</p>
+                  <p className="font-medium">{transferConfig.banco}</p>
                 </div>
-              ))}
-              <div className="col-span-2">
+                <div>
+                  <p className="text-blue-200">Tipo de cuenta</p>
+                  <p className="font-medium">{transferConfig.tipoCuenta}</p>
+                </div>
+                <div>
+                  <p className="text-blue-200">Número de cuenta</p>
+                  <p className="font-medium">{transferConfig.nroCuenta}</p>
+                </div>
+                <div>
+                  <p className="text-blue-200">RUT</p>
+                  <p className="font-medium">{transferConfig.rut}</p>
+                </div>
+                <div>
+                  <p className="text-blue-200">Beneficiario</p>
+                  <p className="font-medium">{transferConfig.nombreBeneficiario}</p>
+                </div>
+                {transferConfig.email && (
+                  <div>
+                    <p className="text-blue-200">Email</p>
+                    <p className="font-medium">{transferConfig.email}</p>
+                  </div>
+                )}
+                <div className="col-span-2">
+                  <p className="text-blue-200">Monto a transferir</p>
+                  <p className="font-bold text-lg">${total.toLocaleString('es-CL')} CLP</p>
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm text-blue-100">
+                <p className="italic mb-2">Datos de transferencia no configurados. Contacta al administrador.</p>
                 <p className="text-blue-200">Monto a transferir</p>
                 <p className="font-bold text-lg">${total.toLocaleString('es-CL')} CLP</p>
               </div>
-            </div>
+            )}
           </div>
 
           <div className="card">

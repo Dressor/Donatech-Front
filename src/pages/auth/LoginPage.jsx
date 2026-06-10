@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 import { HeartIcon, EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
+import { getErrorMessage } from '../../utils/errorHandler';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -31,15 +32,7 @@ export default function LoginPage() {
       else if (user.roles?.includes('ROLE_BENEFICIARIO')) navigate('/beneficiary/campaign', { replace: true });
       else navigate(from, { replace: true });
     } catch (err) {
-      if (!err.response) {
-        toast.error('No se puede conectar con el servidor. Verifica tu conexión.');
-      } else if (err.response.status === 401) {
-        toast.error('Correo o contraseña incorrectos.');
-      } else if (err.response.status === 500) {
-        toast.error('Error en el servidor. Intenta más tarde.');
-      } else {
-        toast.error(err.response.data?.message ?? 'Error al iniciar sesión.');
-      }
+      toast.error(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

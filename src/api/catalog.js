@@ -24,6 +24,8 @@ export const catalogApi = {
   createKit: (data) => api.post('/api/kits', data),
   updateKit: (id, data) => api.put(`/api/kits/${id}`, data),
   deleteKit: (id) => api.delete(`/api/kits/${id}`),
+  uploadKitImage: (id, formData) => api.post(`/api/kits/${id}/image`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  uploadProductImage: (id, formData) => api.post(`/api/products/${id}/image`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
 
   // Campaigns
   getCampaigns: () => api.get('/api/campaigns'),

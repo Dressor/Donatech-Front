@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { catalogApi, usersApi } from '../../api';
+import { getErrorMessage } from '../../utils/errorHandler';
 import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -17,19 +18,28 @@ export default function CreateCampaignPage() {
   const { register, handleSubmit, watch, formState: { errors } } = useForm();
   const regionId = watch('regionId');
 
-  const { data: kits = [] } = useQuery({
-    queryKey: ['kits'],
-    queryFn: () => catalogApi.getKits(),
+  const { data: myCampaigns = [], isLoading: loadingCampaigns } = useQuery({
+    queryKey: ['my-campaigns', user?.id],
+    queryFn: () => catalogApi.getCampaignsByBeneficiary(user.id),
     select: (r) => r.data ?? [],
+    enabled: !!user?.id,
   });
 
+  const hasActiveCampaign = myCampaigns.some(
+    (c) => c.estado === 'ACTIVA' || c.estado === 'EN_VALIDACION'
+  );
+
   useEffect(() => {
-    usersApi.getRegions().then((r) => setRegions(r.data ?? [])).catch(() => {});
+    usersApi.getRegions().then((r) => setRegions(r.data ?? [])).catch(() => {
+      toast.error('No se pudieron cargar las regiones. Recarga la página.');
+    });
   }, []);
 
   useEffect(() => {
     if (regionId) {
-      usersApi.getComunasByRegion(regionId).then((r) => setComunas(r.data ?? [])).catch(() => {});
+      usersApi.getComunasByRegion(regionId).then((r) => setComunas(r.data ?? [])).catch(() => {
+        toast.error('No se pudieron cargar las comunas.');
+      });
     }
   }, [regionId]);
 
@@ -46,11 +56,15 @@ export default function CreateCampaignPage() {
       toast.success('¡Campaña creada! Está en revisión por nuestro equipo.');
       navigate('/beneficiary/dashboard');
     } catch (err) {
-      toast.error(err.response?.data?.message ?? 'Error al crear la campaña');
+      toast.error(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
   };
+
+  if (loadingCampaigns) {
+    return <div className="max-w-2xl mx-auto px-4 py-10"><LoadingSpinner /></div>;
+  }
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
@@ -59,7 +73,22 @@ export default function CreateCampaignPage() {
         Completa el formulario para que nuestros validadores revisen tu solicitud.
       </p>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="card space-y-5">
+      {hasActiveCampaign && (
+        <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+          <p className="font-semibold text-amber-800 mb-1">Ya tienes una campaña activa o en validación</p>
+          <p className="text-amber-700 text-sm mb-3">
+            Solo puedes tener una campaña activa a la vez. Espera a que tu campaña actual finalice antes de crear una nueva.
+          </p>
+          <Link
+            to="/beneficiary/dashboard"
+            className="text-sm font-medium text-amber-800 underline hover:text-amber-900"
+          >
+            Ver mi campaña actual →
+          </Link>
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit(onSubmit)} className={`card space-y-5 ${hasActiveCampaign ? 'opacity-50 pointer-events-none select-none' : ''}`}>
         <div>
           <label className="label">Título de la campaña</label>
           <input
@@ -122,7 +151,7 @@ export default function CreateCampaignPage() {
           />
         </div>
 
-        <button type="submit" disabled={loading} className="btn-primary w-full">
+        <button type="submit" disabled={loading || hasActiveCampaign} className="btn-primary w-full">
           {loading ? (
             <span className="flex items-center justify-center gap-2">
               <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />

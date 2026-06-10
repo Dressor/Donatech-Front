@@ -3,6 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import { authApi, usersApi } from '../../api';
+import { getErrorMessage } from '../../utils/errorHandler';
 import { isValidRut } from '../../utils/rutValidator';
 import {
   HeartIcon,
@@ -31,12 +32,16 @@ export default function RegisterPage() {
   const regionId = watch('regionId');
 
   useEffect(() => {
-    usersApi.getRegions().then((r) => setRegions(r.data ?? [])).catch(() => {});
+    usersApi.getRegions().then((r) => setRegions(r.data ?? [])).catch(() => {
+      toast.error('No se pudieron cargar las regiones. Recarga la página.');
+    });
   }, []);
 
   useEffect(() => {
     if (regionId) {
-      usersApi.getComunasByRegion(regionId).then((r) => setComunas(r.data ?? [])).catch(() => {});
+      usersApi.getComunasByRegion(regionId).then((r) => setComunas(r.data ?? [])).catch(() => {
+        toast.error('No se pudieron cargar las comunas.');
+      });
     }
   }, [regionId]);
 
@@ -75,7 +80,7 @@ export default function RegisterPage() {
         setRegisteredPending(true);
       }
     } catch (err) {
-      toast.error(err.response?.data?.message ?? 'Error al registrarse');
+      toast.error(getErrorMessage(err));
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supportsApi } from '../../api';
+import { getErrorMessage } from '../../utils/errorHandler';
 import StatusBadge from '../../components/ui/StatusBadge';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import EmptyState from '../../components/ui/EmptyState';
@@ -47,7 +48,7 @@ export default function BackofficePage() {
       queryClient.invalidateQueries(['tickets']);
       setSelectedId(null);
     },
-    onError: () => toast.error('Error al aprobar'),
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   const rejectMutation = useMutation({
@@ -61,7 +62,7 @@ export default function BackofficePage() {
       setSelectedId(null);
       setMotivo('');
     },
-    onError: () => toast.error('Error al rechazar'),
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   return (

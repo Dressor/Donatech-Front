@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '../../api';
+import { getErrorMessage } from '../../utils/errorHandler';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import EmptyState from '../../components/ui/EmptyState';
 import toast from 'react-hot-toast';
@@ -22,7 +23,7 @@ export default function AdminUsersPage() {
       toast.success('Estado actualizado');
       queryClient.invalidateQueries(['admin-users']);
     },
-    onError: () => toast.error('Error al actualizar'),
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   const filtered = users.filter(

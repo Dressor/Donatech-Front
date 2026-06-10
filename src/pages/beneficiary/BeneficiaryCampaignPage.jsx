@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { catalogApi } from '../../api';
+import { getErrorMessage } from '../../utils/errorHandler';
 import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
@@ -46,8 +47,7 @@ export default function BeneficiaryCampaignPage() {
       reset();
       setShowForm(false);
     },
-    onError: (err) =>
-      toast.error(err.response?.data?.message ?? 'Error al agregar el kit'),
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   /* ── Eliminar kit ── */
@@ -57,7 +57,7 @@ export default function BeneficiaryCampaignPage() {
       toast.success('Kit eliminado de la campaña');
       queryClient.invalidateQueries(['campaign', id]);
     },
-    onError: () => toast.error('Error al eliminar el kit'),
+    onError: (err) => toast.error(getErrorMessage(err)),
   });
 
   if (loadingCampaign) return <LoadingSpinner />;
