@@ -13,6 +13,9 @@ import { es } from 'date-fns/locale';
 export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
   const [rejecting, setRejecting] = useState(false);
   const [motivo, setMotivo] = useState('');
+  const [respuesta, setRespuesta] = useState('');
+
+  const isValidation = ['VALIDACION_TRANSFERENCIA', 'VALIDACION_CAMPAÑA'].includes(ticket.tipo);
 
   const { data: order, isLoading: loadingOrder } = useQuery({
     queryKey: ['order', ticket.donationId],
@@ -28,11 +31,13 @@ export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
     enabled: !!order?.userEmail,
   });
 
+  // Para incidencias/otros tickets la campaña viene en el ticket (sin order); caer a ticket.campaignId.
+  const campaignIdToLoad = order?.campaignId ?? ticket.campaignId;
   const { data: campaign } = useQuery({
-    queryKey: ['campaign', order?.campaignId],
-    queryFn: () => catalogApi.getCampaignById(order.campaignId),
+    queryKey: ['campaign', campaignIdToLoad],
+    queryFn: () => catalogApi.getCampaignById(campaignIdToLoad),
     select: (r) => r.data,
-    enabled: !!order?.campaignId,
+    enabled: !!campaignIdToLoad,
   });
 
   // Owner = user id del dueño de la campaña. Preferir el de la orden (backend nuevo),
@@ -71,7 +76,14 @@ export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 
+  const respondMutation = useMutation({
+    mutationFn: () => supportsApi.respond(ticket.id, { respuesta }),
+    onSuccess: () => { toast.success('Ticket respondido y resuelto'); onSuccess(); },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
   const isPending = ticket.estado === 'PENDIENTE';
+  const isOpen = ticket.estado === 'PENDIENTE' || ticket.estado === 'EN_PROGRESO';
   const donorName = donor
     ? [donor.nombre, donor.apellido].filter(Boolean).join(' ') || donor.email
     : null;
@@ -87,7 +99,7 @@ export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
         <div className="flex items-center justify-between p-5 border-b border-gray-100">
           <div className="flex items-center gap-2 flex-wrap">
             <ShieldCheckIcon className="w-5 h-5 text-primary-600" />
-            <h2 className="font-semibold text-gray-900 text-lg">Detalle de validación</h2>
+            <h2 className="font-semibold text-gray-900 text-lg">{isValidation ? 'Detalle de validación' : 'Detalle de ticket'}</h2>
             <span className="text-sm text-gray-400">Ticket #{ticket.id}</span>
             <span className="badge-info text-xs">{ticket.tipo?.replace(/_/g, ' ')}</span>
             <StatusBadge status={ticket.estado} />
@@ -230,16 +242,60 @@ export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
             </section>
           )}
 
-          {/* Descripción ticket */}
-          {ticket.descripcion && (
+          {/* Solicitante (tickets no de validación, p.ej. incidencia de entrega) */}
+          {!isValidation && (
             <section>
-              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Descripción</h3>
-              <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-4">{ticket.descripcion}</p>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Solicitante</h3>
+              <div className="bg-gray-50 rounded-xl p-4 text-sm space-y-1">
+                {ticket.recipientEmail && <p className="text-gray-700">{ticket.recipientEmail}</p>}
+                {ticket.titulo && <p className="text-gray-500">{ticket.titulo}</p>}
+                {ticket.donationId && <p className="text-xs text-gray-400">Donación vinculada: #{ticket.donationId}</p>}
+              </div>
             </section>
           )}
 
-          {/* Acciones */}
-          {isPending && (
+          {/* Descripción ticket */}
+          {ticket.descripcion && (
+            <section>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">
+                {isValidation ? 'Descripción' : 'Mensaje del solicitante'}
+              </h3>
+              <p className="text-sm text-gray-700 bg-gray-50 rounded-xl p-4 whitespace-pre-line">{ticket.descripcion}</p>
+            </section>
+          )}
+
+          {/* Respuesta previa */}
+          {ticket.respuesta && (
+            <section>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Respuesta de soporte</h3>
+              <p className="text-sm text-gray-700 bg-green-50 rounded-xl p-4 whitespace-pre-line">{ticket.respuesta}</p>
+            </section>
+          )}
+
+          {/* Responder y resolver — tickets no de validación */}
+          {!isValidation && isOpen && (
+            <section className="border-t border-gray-100 pt-4 space-y-3">
+              <label className="label">Respuesta a soporte</label>
+              <textarea
+                value={respuesta}
+                onChange={(e) => setRespuesta(e.target.value)}
+                rows={3}
+                placeholder="Escribe la respuesta o resolución para el solicitante..."
+                className="input-field resize-none"
+              />
+              <button
+                onClick={() => respondMutation.mutate()}
+                disabled={respondMutation.isPending || !respuesta.trim()}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 transition-colors disabled:opacity-50"
+              >
+                <CheckCircleIcon className="w-4 h-4" />
+                {respondMutation.isPending ? 'Resolviendo...' : 'Responder y resolver'}
+              </button>
+            </section>
+          )}
+
+          {/* Acciones de validación */}
+          {isValidation && isPending && (
             <section className="border-t border-gray-100 pt-4">
               {rejecting ? (
                 <div className="space-y-3">

@@ -14,12 +14,6 @@ import {
   ClipboardDocumentCheckIcon,
 } from '@heroicons/react/24/outline';
 
-const stats = [
-  { label: 'Familias Ayudadas', value: '1,240+', icon: UsersIcon },
-  { label: 'Donaciones Realizadas', value: '$48M+', icon: CurrencyDollarIcon },
-  { label: 'Campañas Activas', value: '85', icon: HeartIcon },
-  { label: 'Kits Entregados', value: '3,800+', icon: ClipboardDocumentCheckIcon },
-];
 
 const steps = [
   {
@@ -49,11 +43,19 @@ const steps = [
 ];
 
 export default function HomePage() {
-  const { data, isLoading } = useQuery({
+  const { data: activeCampaigns = [], isLoading } = useQuery({
     queryKey: ['active-campaigns'],
     queryFn: () => catalogApi.getActiveCampaigns(),
-    select: (res) => res.data?.slice(0, 3) ?? [],
+    select: (res) => res.data ?? [],
   });
+
+  const data = activeCampaigns.slice(0, 3);
+  const stats = [
+    { label: 'Familias Ayudadas', value: '1,240+', icon: UsersIcon },
+    { label: 'Donaciones Realizadas', value: '$48M+', icon: CurrencyDollarIcon },
+    { label: 'Campañas Activas', value: isLoading ? '—' : String(activeCampaigns.length), icon: HeartIcon },
+    { label: 'Kits Entregados', value: '3,800+', icon: ClipboardDocumentCheckIcon },
+  ];
 
   return (
     <div className="animate-fade-in">

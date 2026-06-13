@@ -20,10 +20,12 @@ const navLinks = {
   ROLE_DONANTE: [
     { label: 'Campañas', to: '/campaigns' },
     { label: 'Mis Donaciones', to: '/donor/history' },
+    { label: 'Soporte', to: '/support/delivery-issue' },
   ],
   ROLE_BENEFICIARIO: [
     { label: 'Inicio', to: '/beneficiary/dashboard' },
     { label: 'Mi Campaña', to: '/beneficiary/campaign' },
+    { label: 'Soporte', to: '/support/delivery-issue' },
   ],
   ROLE_ADMIN: [
     { label: 'Dashboard', to: '/admin/dashboard' },
@@ -42,6 +44,7 @@ const navLinks = {
   ROLE_ORGANIZACION: [
     { label: 'Campañas', to: '/campaigns' },
     { label: 'Mis Campañas', to: '/org/campaigns' },
+    { label: 'Soporte', to: '/support/delivery-issue' },
   ],
 };
 

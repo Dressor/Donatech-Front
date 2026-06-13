@@ -11,6 +11,7 @@ const TICKET_TYPES = [
   { value: '', label: 'Todos' },
   { value: 'VALIDACION_TRANSFERENCIA', label: 'Transferencias' },
   { value: 'VALIDACION_CAMPAÑA', label: 'Campañas' },
+  { value: 'INCIDENCIA_ENTREGA', label: 'Incidencias de Entrega' },
   { value: 'OTRO', label: 'Otro' },
 ];
 

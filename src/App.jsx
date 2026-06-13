@@ -26,6 +26,7 @@ const DonationHistoryPage = lazy(() => import('./pages/donor/DonationHistoryPage
 
 // Shared — detalle de donación visible por donante/admin/beneficiario
 const DonationDetailPage = lazy(() => import('./pages/shared/DonationDetailPage'));
+const DeliveryIssuePage = lazy(() => import('./pages/support/DeliveryIssuePage'));
 
 // Beneficiary — lazy
 const BeneficiaryDashboard = lazy(() => import('./pages/beneficiary/BeneficiaryDashboard'));
@@ -118,6 +119,15 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <DonationDetailPage />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Soporte — incidencia de entrega */}
+                <Route
+                  path="support/delivery-issue"
+                  element={
+                    <ProtectedRoute allowedRoles={['ROLE_DONANTE', 'ROLE_BENEFICIARIO', 'ROLE_ORGANIZACION']}>
+                      <DeliveryIssuePage />
                     </ProtectedRoute>
                   }
                 />
