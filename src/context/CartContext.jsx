@@ -5,6 +5,7 @@ const CartContext = createContext(null);
 export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
   const [campaignId, setCampaignId] = useState(null);
+  const [coupon, setCoupon] = useState('');
 
   const addItem = useCallback((kit, cantidad = 1) => {
     setItems((prev) => {
@@ -35,6 +36,7 @@ export function CartProvider({ children }) {
   const clear = useCallback(() => {
     setItems([]);
     setCampaignId(null);
+    setCoupon('');
   }, []);
 
   const total = items.reduce(
@@ -44,7 +46,7 @@ export function CartProvider({ children }) {
 
   return (
     <CartContext.Provider
-      value={{ items, campaignId, setCampaignId, addItem, removeItem, updateQuantity, clear, total }}
+      value={{ items, campaignId, setCampaignId, coupon, setCoupon, addItem, removeItem, updateQuantity, clear, total }}
     >
       {children}
     </CartContext.Provider>

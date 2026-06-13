@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { catalogApi } from '../../api';
 import { getErrorMessage } from '../../utils/errorHandler';
 import { useForm } from 'react-hook-form';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import StatusBadge from '../../components/ui/StatusBadge';
 import toast from 'react-hot-toast';
@@ -367,6 +367,7 @@ function ProductForm({ product, categories, units, onCancel, onSaved }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
 export default function AdminCatalogPage() {
+  const navigate = useNavigate();
   const [tab, setTab] = useState('kits');
   const [showKitForm, setShowKitForm] = useState(false);
   const [editingKit, setEditingKit] = useState(null);
@@ -668,20 +669,22 @@ export default function AdminCatalogPage() {
                   </thead>
                   <tbody>
                     {campaigns.map((c) => (
-                      <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50/50">
+                      <tr
+                        key={c.id}
+                        onClick={() => navigate(`/admin/campaigns/${c.id}`)}
+                        className="border-b border-gray-50 hover:bg-gray-50/50 cursor-pointer"
+                      >
                         <td className="px-4 py-3 text-gray-500">#{c.id}</td>
                         <td className="px-4 py-3 font-medium text-gray-900 max-w-xs truncate">{c.titulo}</td>
                         <td className="px-4 py-3"><StatusBadge status={c.estado} /></td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                           <div className="flex items-center gap-2">
-                            {(c.estado === 'ACTIVA' || c.estado === 'EN_VALIDACION') && (
-                              <Link
-                                to={`/admin/campaigns/${c.id}/kits`}
-                                className="text-xs px-2.5 py-1 rounded-lg bg-blue-50 text-primary-700 hover:bg-blue-100 transition-colors"
-                              >
-                                Asignar kit
-                              </Link>
-                            )}
+                            <Link
+                              to={`/admin/campaigns/${c.id}`}
+                              className="text-xs px-2.5 py-1 rounded-lg bg-blue-50 text-primary-700 hover:bg-blue-100 transition-colors"
+                            >
+                              Detalle
+                            </Link>
                             {c.estado === 'ACTIVA' && (
                               <button
                                 onClick={() => {

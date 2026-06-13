@@ -42,7 +42,7 @@ export default function DonationHistoryPage() {
       ) : (
         <div className="space-y-4">
           {donations.map((d) => (
-            <Link key={d.id} to={`/donor/order/${d.id}`} className="card-hover flex items-start gap-4 no-underline">
+            <Link key={d.id} to={`/donation/${d.id}`} className="card-hover flex items-start gap-4 no-underline">
               <div className="w-12 h-12 rounded-xl bg-gradient-blue flex-shrink-0 flex items-center justify-center">
                 <HeartIcon className="w-6 h-6 text-white" />
               </div>

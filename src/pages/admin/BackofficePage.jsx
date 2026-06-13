@@ -1,17 +1,11 @@
 import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supportsApi } from '../../api';
-import { getErrorMessage } from '../../utils/errorHandler';
 import StatusBadge from '../../components/ui/StatusBadge';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import EmptyState from '../../components/ui/EmptyState';
-import toast from 'react-hot-toast';
-import {
-  CheckCircleIcon,
-  XCircleIcon,
-  ShieldCheckIcon,
-  FunnelIcon,
-} from '@heroicons/react/24/outline';
+import TransferDetailModal from '../../components/ui/TransferDetailModal';
+import { ShieldCheckIcon, FunnelIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
 const TICKET_TYPES = [
   { value: '', label: 'Todos' },
@@ -23,8 +17,7 @@ const TICKET_TYPES = [
 export default function BackofficePage() {
   const [typeFilter, setTypeFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('PENDIENTE');
-  const [selectedId, setSelectedId] = useState(null);
-  const [motivo, setMotivo] = useState('');
+  const [selectedTicket, setSelectedTicket] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: tickets = [], isLoading } = useQuery({
@@ -38,38 +31,16 @@ export default function BackofficePage() {
     select: (r) => r.data ?? [],
   });
 
-  const approveMutation = useMutation({
-    mutationFn: ({ id, tipo }) =>
-      tipo === 'VALIDACION_TRANSFERENCIA'
-        ? supportsApi.validateTransfer(id, true)
-        : supportsApi.validateCampaign(id, true),
-    onSuccess: () => {
-      toast.success('Aprobado exitosamente');
-      queryClient.invalidateQueries(['tickets']);
-      setSelectedId(null);
-    },
-    onError: (err) => toast.error(getErrorMessage(err)),
-  });
-
-  const rejectMutation = useMutation({
-    mutationFn: ({ id, tipo }) =>
-      tipo === 'VALIDACION_TRANSFERENCIA'
-        ? supportsApi.validateTransfer(id, false, motivo)
-        : supportsApi.validateCampaign(id, false, motivo),
-    onSuccess: () => {
-      toast.success('Rechazado');
-      queryClient.invalidateQueries(['tickets']);
-      setSelectedId(null);
-      setMotivo('');
-    },
-    onError: (err) => toast.error(getErrorMessage(err)),
-  });
+  const handleSuccess = () => {
+    queryClient.invalidateQueries(['tickets']);
+    setSelectedTicket(null);
+  };
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="mb-8">
         <h1 className="section-title mb-1">Backoffice de Validación</h1>
-        <p className="text-gray-500">Aprueba o rechaza transferencias y campañas</p>
+        <p className="text-gray-500">Revisa y aprueba transferencias y campañas</p>
       </div>
 
       {/* Filters */}
@@ -119,74 +90,38 @@ export default function BackofficePage() {
           description="Todo está al día."
         />
       ) : (
-        <div className="space-y-4">
+        <div className="space-y-3">
           {tickets.map((ticket) => (
-            <div key={ticket.id} className="card">
-              <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div
+              key={ticket.id}
+              onClick={() => setSelectedTicket(ticket)}
+              className="card cursor-pointer hover:shadow-md hover:border-primary-200 transition-all duration-150 group"
+            >
+              <div className="flex items-center justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap mb-2">
+                  <div className="flex items-center gap-2 flex-wrap mb-1.5">
                     <span className="font-semibold text-gray-900">Ticket #{ticket.id}</span>
                     <StatusBadge status={ticket.estado} />
                     <span className="badge-info">{ticket.tipo?.replace(/_/g, ' ')}</span>
                   </div>
-                  <p className="text-sm text-gray-600">{ticket.descripcion}</p>
+                  <p className="text-sm text-gray-600 truncate">{ticket.descripcion}</p>
                   {ticket.donationId && (
                     <p className="text-xs text-gray-400 mt-1">Donación: #{ticket.donationId}</p>
                   )}
                 </div>
-
-                {ticket.estado === 'PENDIENTE' && (
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button
-                      onClick={() => approveMutation.mutate({ id: ticket.id, tipo: ticket.tipo })}
-                      disabled={approveMutation.isPending}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 transition-colors"
-                    >
-                      <CheckCircleIcon className="w-4 h-4" />
-                      Aprobar
-                    </button>
-                    <button
-                      onClick={() => setSelectedId(selectedId === ticket.id ? null : ticket.id)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-50 text-danger-700 text-sm font-medium hover:bg-red-100 transition-colors"
-                    >
-                      <XCircleIcon className="w-4 h-4" />
-                      Rechazar
-                    </button>
-                  </div>
-                )}
+                <ChevronRightIcon className="w-5 h-5 text-gray-300 group-hover:text-primary-500 transition-colors flex-shrink-0" />
               </div>
-
-              {/* Reject form */}
-              {selectedId === ticket.id && (
-                <div className="mt-4 pt-4 border-t border-gray-100 space-y-3">
-                  <label className="label">Motivo del rechazo</label>
-                  <textarea
-                    value={motivo}
-                    onChange={(e) => setMotivo(e.target.value)}
-                    rows={2}
-                    placeholder="Explica el motivo del rechazo..."
-                    className="input-field resize-none"
-                  />
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => rejectMutation.mutate({ id: ticket.id, tipo: ticket.tipo })}
-                      disabled={rejectMutation.isPending}
-                      className="btn-danger text-sm px-4 py-2"
-                    >
-                      Confirmar rechazo
-                    </button>
-                    <button
-                      onClick={() => { setSelectedId(null); setMotivo(''); }}
-                      className="btn-outline text-sm px-4 py-2"
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                </div>
-              )}
             </div>
           ))}
         </div>
+      )}
+
+      {selectedTicket && (
+        <TransferDetailModal
+          ticket={selectedTicket}
+          onClose={() => setSelectedTicket(null)}
+          onSuccess={handleSuccess}
+        />
       )}
     </div>
   );

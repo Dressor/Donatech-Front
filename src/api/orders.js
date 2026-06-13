@@ -22,7 +22,20 @@ export const ordersApi = {
     });
   },
 
-  // Delivery proof upload
+  // Download proof files (blob for authenticated endpoints)
+  getTransferProof: (id) => api.get(`/api/orders/${id}/transfer-proof`, { responseType: 'blob' }),
+  getDeliveryPhoto: (id) => api.get(`/api/orders/${id}/delivery-photo`, { responseType: 'blob' }),
+  getDeliveryDocument: (id) => api.get(`/api/orders/${id}/delivery-document`, { responseType: 'blob' }),
+
+  // Asignar transportista (EN_PREPARACION → ASIGNADA_ENVIO)
+  assignCourier: (id, data, changedById) =>
+    api.patch(`/api/orders/${id}/assign-courier`, data, { params: { changedById } }),
+
+  // Marcar en camino (ASIGNADA_ENVIO → EN_CAMINO)
+  markInTransit: (id, changedById) =>
+    api.patch(`/api/orders/${id}/in-transit`, null, { params: { changedById } }),
+
+  // Delivery proof upload (EN_CAMINO → PENDIENTE_CONFIRMACION)
   uploadDeliveryProof: (id, photo, document) => {
     const form = new FormData();
     form.append('photo', photo);
@@ -39,9 +52,22 @@ export const ordersApi = {
   getDonations: () => api.get('/api/donations'),
   getDonationById: (id) => api.get(`/api/donations/${id}`),
   getDonationsByDonor: (email) => api.get('/api/donations/by-donor', { params: { email } }),
+  getDonationsByCampaign: (campaignId, visibleOnly = false) =>
+    api.get(`/api/donations/by-campaign/${campaignId}`, { params: { visibleOnly } }),
+  // Agradecimiento del beneficiario al donante (orden ENTREGADA)
+  sendThankYou: (id, message, images = []) => {
+    const form = new FormData();
+    form.append('message', message);
+    images.forEach((img) => form.append('images', img));
+    return api.post(`/api/orders/${id}/thank-you`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
   createDonation: (data) => api.post('/api/donations', data),
   updateDonationStatus: (id, status, changedById) =>
     api.patch(`/api/donations/${id}/status`, null, { params: { status, changedById } }),
+  cancelDonation: (id, motivo, changedById) =>
+    api.patch(`/api/donations/${id}/cancel`, null, { params: { motivo, changedById } }),
 
   // Transfer config
   getTransferConfig: () => api.get('/api/config/transfer'),

@@ -14,28 +14,32 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function CheckoutPage() {
-  const { items, total, campaignId, clear } = useCart();
+  const { items, total, campaignId, coupon, clear } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [coupon, setCoupon] = useState('');
   const [step, setStep] = useState(1);
   const [orderId, setOrderId] = useState(null);
+  // Snapshot de la orden para mostrar en el paso 2 (el carrito se vacía al confirmar)
+  const [snapshot, setSnapshot] = useState({ items: [], total: 0 });
   const fileRef = useRef();
 
   const { data: transferConfig } = useQuery({
     queryKey: ['transfer-config'],
     queryFn: () => ordersApi.getTransferConfig(),
     select: (r) => (r.data?.message ? null : r.data),
+    retry: false,
+    throwOnError: false,
   });
 
-  if (items.length === 0) {
+  if (step === 1 && items.length === 0) {
     navigate('/donor/cart');
     return null;
   }
 
-  const handleCreateOrder = async () => {
+  // Paso 1: crear la orden al CONFIRMAR y vaciar el carrito de inmediato.
+  const handleConfirm = async () => {
     setLoading(true);
     try {
       const payload = {
@@ -46,8 +50,10 @@ export default function CheckoutPage() {
       };
       const { data } = await ordersApi.createDonation(payload);
       setOrderId(data.id);
+      setSnapshot({ items, total }); // congelar para el paso 2
+      clear(); // vaciar carrito ya: evita duplicar la orden
       setStep(2);
-      toast.success('¡Orden creada! Ahora sube tu comprobante de pago.');
+      toast.success('¡Orden confirmada! Ahora sube tu comprobante de pago.');
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -55,6 +61,7 @@ export default function CheckoutPage() {
     }
   };
 
+  // Paso 2: subir comprobante → EN_VALIDACION_TRANSFERENCIA
   const handleUploadProof = async () => {
     if (!file) {
       toast.error('Debes adjuntar el comprobante de transferencia');
@@ -63,7 +70,6 @@ export default function CheckoutPage() {
     setLoading(true);
     try {
       await ordersApi.uploadTransferProof(orderId, file);
-      clear();
       setStep(3);
       toast.success('¡Comprobante enviado! Tu donación está siendo validada.');
     } catch (err) {
@@ -92,7 +98,7 @@ export default function CheckoutPage() {
         ))}
       </div>
 
-      {/* Step 1: Review */}
+      {/* Step 1: Revisar y confirmar */}
       {step === 1 && (
         <div className="space-y-6">
           <h1 className="section-title">Revisar donación</h1>
@@ -107,22 +113,15 @@ export default function CheckoutPage() {
                 </div>
               ))}
             </div>
+            {coupon && (
+              <div className="border-t border-gray-100 mt-3 pt-3 flex justify-between text-sm text-primary-700">
+                <span>Cupón aplicado</span>
+                <span className="font-medium">{coupon}</span>
+              </div>
+            )}
             <div className="border-t border-gray-100 mt-3 pt-3 flex justify-between font-semibold">
               <span>Total</span>
               <span className="text-primary-700">${total.toLocaleString('es-CL')} CLP</span>
-            </div>
-          </div>
-
-          <div className="card">
-            <label className="label">Código de cupón (opcional)</label>
-            <div className="flex gap-2">
-              <input
-                value={coupon}
-                onChange={(e) => setCoupon(e.target.value)}
-                placeholder="Ingresa tu código..."
-                className="input-field"
-              />
-              <button className="btn-outline px-4 py-2">Aplicar</button>
             </div>
           </div>
 
@@ -130,19 +129,19 @@ export default function CheckoutPage() {
             <div className="flex items-start gap-2">
               <InformationCircleIcon className="w-5 h-5 text-primary-600 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-primary-700">
-                Al confirmar, se creará tu orden y deberás realizar la transferencia bancaria
-                y subir el comprobante en el siguiente paso.
+                Al confirmar se creará tu orden y se vaciará el carrito. Luego deberás realizar la
+                transferencia y subir el comprobante en el siguiente paso.
               </p>
             </div>
           </div>
 
-          <button onClick={handleCreateOrder} disabled={loading} className="btn-primary w-full">
-            {loading ? 'Procesando...' : 'Confirmar y continuar →'}
+          <button onClick={handleConfirm} disabled={loading} className="btn-primary w-full">
+            {loading ? 'Procesando...' : 'Confirmar donación →'}
           </button>
         </div>
       )}
 
-      {/* Step 2: Upload proof */}
+      {/* Step 2: subir comprobante */}
       {step === 2 && (
         <div className="space-y-6">
           <h1 className="section-title">Datos de transferencia</h1>
@@ -182,14 +181,14 @@ export default function CheckoutPage() {
                 )}
                 <div className="col-span-2">
                   <p className="text-blue-200">Monto a transferir</p>
-                  <p className="font-bold text-lg">${total.toLocaleString('es-CL')} CLP</p>
+                  <p className="font-bold text-lg">${snapshot.total.toLocaleString('es-CL')} CLP</p>
                 </div>
               </div>
             ) : (
               <div className="text-sm text-blue-100">
                 <p className="italic mb-2">Datos de transferencia no configurados. Contacta al administrador.</p>
                 <p className="text-blue-200">Monto a transferir</p>
-                <p className="font-bold text-lg">${total.toLocaleString('es-CL')} CLP</p>
+                <p className="font-bold text-lg">${snapshot.total.toLocaleString('es-CL')} CLP</p>
               </div>
             )}
           </div>
@@ -224,10 +223,14 @@ export default function CheckoutPage() {
           <button onClick={handleUploadProof} disabled={loading || !file} className="btn-primary w-full">
             {loading ? 'Subiendo...' : 'Enviar comprobante →'}
           </button>
+          <p className="text-xs text-gray-400 text-center">
+            ¿Aún no transfieres? Tu orden quedó guardada en "Mis Donaciones" y puedes subir el comprobante
+            más tarde desde su detalle.
+          </p>
         </div>
       )}
 
-      {/* Step 3: Confirmation */}
+      {/* Step 3: confirmación */}
       {step === 3 && (
         <div className="text-center py-12">
           <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-6">

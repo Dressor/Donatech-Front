@@ -15,25 +15,28 @@ const navLinks = {
   public: [
     { label: 'Inicio', to: '/' },
     { label: 'Campañas', to: '/campaigns' },
-    { label: 'Cómo funciona', to: '/how-it-works' },
+    { label: 'Cómo funciona', to: '/#como-funciona' },
   ],
   ROLE_DONANTE: [
     { label: 'Campañas', to: '/campaigns' },
     { label: 'Mis Donaciones', to: '/donor/history' },
   ],
   ROLE_BENEFICIARIO: [
+    { label: 'Inicio', to: '/beneficiary/dashboard' },
     { label: 'Mi Campaña', to: '/beneficiary/campaign' },
-    { label: 'Mi Estado', to: '/beneficiary/tracking' },
   ],
   ROLE_ADMIN: [
     { label: 'Dashboard', to: '/admin/dashboard' },
     { label: 'Backoffice', to: '/admin/backoffice' },
+    { label: 'Entregas', to: '/admin/deliveries' },
     { label: 'Validar cuentas', to: '/admin/beneficiaries' },
     { label: 'Usuarios', to: '/admin/users' },
     { label: 'Catálogo', to: '/admin/catalog' },
+    { label: 'Medio de Pago', to: '/admin/transfer-config' },
   ],
   ROLE_VOLUNTARIO: [
     { label: 'Validaciones', to: '/validator/pending' },
+    { label: 'Entregas', to: '/admin/deliveries' },
     { label: 'Tickets', to: '/validator/tickets' },
   ],
   ROLE_ORGANIZACION: [
@@ -59,6 +62,26 @@ export default function Navbar() {
   };
 
   const links = getLinks();
+
+  const scrollToHash = (hash) => {
+    const el = document.getElementById(hash.replace('#', ''));
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  // Para enlaces ancla ("/#seccion") hace scroll suave en la landing en vez de navegar a una ruta inexistente
+  const handleNavClick = (e, to) => {
+    if (to.startsWith('/#')) {
+      e.preventDefault();
+      const hash = to.slice(1);
+      if (location.pathname !== '/') {
+        navigate('/');
+        setTimeout(() => scrollToHash(hash), 120);
+      } else {
+        scrollToHash(hash);
+      }
+      setOpen(false);
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -87,6 +110,7 @@ export default function Navbar() {
               <Link
                 key={l.to}
                 to={l.to}
+                onClick={(e) => handleNavClick(e, l.to)}
                 className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-150 ${
                   location.pathname === l.to
                     ? 'bg-primary-50 text-primary-700'
@@ -159,7 +183,7 @@ export default function Navbar() {
               <Link
                 key={l.to}
                 to={l.to}
-                onClick={() => setOpen(false)}
+                onClick={(e) => { handleNavClick(e, l.to); setOpen(false); }}
                 className="block px-4 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50"
               >
                 {l.label}

@@ -4,16 +4,10 @@ import { catalogApi, ordersApi } from '../../api';
 import { Link } from 'react-router-dom';
 import StatusBadge from '../../components/ui/StatusBadge';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
-import { HeartIcon, PlusCircleIcon, TruckIcon, MegaphoneIcon } from '@heroicons/react/24/outline';
+import { HeartIcon, MegaphoneIcon } from '@heroicons/react/24/outline';
 
 export default function BeneficiaryDashboard() {
   const { user } = useAuth();
-
-  const { data: orders = [], isLoading: ordersLoading } = useQuery({
-    queryKey: ['beneficiary-orders'],
-    queryFn: () => ordersApi.getAll(),
-    select: (r) => r.data?.slice(0, 5) ?? [],
-  });
 
   const { data: campaigns = [], isLoading: campLoading } = useQuery({
     queryKey: ['my-campaigns', user?.id],
@@ -21,6 +15,15 @@ export default function BeneficiaryDashboard() {
     select: (r) => r.data ?? [],
     enabled: !!user?.id,
     refetchOnMount: 'always',
+  });
+
+  const campaignId = campaigns[0]?.id;
+
+  const { data: orders = [], isLoading: ordersLoading } = useQuery({
+    queryKey: ['beneficiary-orders', campaignId],
+    queryFn: () => ordersApi.getDonationsByCampaign(campaignId),
+    select: (r) => r.data?.slice(0, 5) ?? [],
+    enabled: !!campaignId,
   });
 
   return (
@@ -58,42 +61,12 @@ export default function BeneficiaryDashboard() {
             </div>
             <div className="flex items-center gap-3">
               <StatusBadge status={campaigns[0].estado} />
-              {(campaigns[0].estado === 'ACTIVA' || campaigns[0].estado === 'EN_VALIDACION') && (
-                <Link
-                  to={`/beneficiary/campaign/${campaigns[0].id}`}
-                  className="btn-primary text-sm"
-                >
-                  Gestionar kits
-                </Link>
-              )}
-              <Link to={`/campaigns/${campaigns[0].id}`} className="text-sm text-primary-600 hover:underline">
-                Ver detalle →
+              <Link to="/beneficiary/campaign" className="btn-primary text-sm">
+                Ver mi campaña →
               </Link>
             </div>
           </div>
         )}
-      </div>
-
-      {/* Quick actions */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-        <Link to="/beneficiary/campaign" className="card-hover flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-blue flex items-center justify-center flex-shrink-0">
-            <PlusCircleIcon className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">Mi campaña</h3>
-            <p className="text-sm text-gray-500">Ver o crear tu campaña de ayuda</p>
-          </div>
-        </Link>
-        <Link to="/beneficiary/tracking" className="card-hover flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-gradient-red flex items-center justify-center flex-shrink-0">
-            <TruckIcon className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h3 className="font-semibold text-gray-900">Seguimiento</h3>
-            <p className="text-sm text-gray-500">Ver estado de tus donaciones</p>
-          </div>
-        </Link>
       </div>
 
       {/* Recent orders */}

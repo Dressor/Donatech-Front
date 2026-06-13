@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider, QueryCache } from '@tanstack/react-query';
 import toast from 'react-hot-toast';
@@ -7,8 +8,9 @@ import { getErrorMessage } from './utils/errorHandler';
 
 import MainLayout from './components/layout/MainLayout';
 import ProtectedRoute from './components/layout/ProtectedRoute';
+import LoadingSpinner from './components/ui/LoadingSpinner';
 
-// Public
+// Public — carga eager para primer paint rápido
 import HomePage from './pages/public/HomePage';
 import CampaignsPage from './pages/public/CampaignsPage';
 import CampaignDetailPage from './pages/public/CampaignDetailPage';
@@ -17,26 +19,29 @@ import CampaignDetailPage from './pages/public/CampaignDetailPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 
-// Donor
-import CartPage from './pages/donor/CartPage';
-import CheckoutPage from './pages/donor/CheckoutPage';
-import DonationHistoryPage from './pages/donor/DonationHistoryPage';
-import OrderTrackingPage from './pages/donor/OrderTrackingPage';
+// Donor — lazy (code splitting)
+const CartPage = lazy(() => import('./pages/donor/CartPage'));
+const CheckoutPage = lazy(() => import('./pages/donor/CheckoutPage'));
+const DonationHistoryPage = lazy(() => import('./pages/donor/DonationHistoryPage'));
 
-// Beneficiary
-import BeneficiaryDashboard from './pages/beneficiary/BeneficiaryDashboard';
-import CreateCampaignPage from './pages/beneficiary/CreateCampaignPage';
-import BeneficiaryCampaignPage from './pages/beneficiary/BeneficiaryCampaignPage';
+// Shared — detalle de donación visible por donante/admin/beneficiario
+const DonationDetailPage = lazy(() => import('./pages/shared/DonationDetailPage'));
 
-// Admin
-import AdminDashboard from './pages/admin/AdminDashboard';
-import BackofficePage from './pages/admin/BackofficePage';
-import AdminUsersPage from './pages/admin/AdminUsersPage';
-import AdminCatalogPage from './pages/admin/AdminCatalogPage';
-import AdminBeneficiariesPage from './pages/admin/AdminBeneficiariesPage';
-import AdminProductsPage from './pages/admin/AdminProductsPage';
-import AdminTransferConfigPage from './pages/admin/AdminTransferConfigPage';
-import AdminCampaignKitsPage from './pages/admin/AdminCampaignKitsPage';
+// Beneficiary — lazy
+const BeneficiaryDashboard = lazy(() => import('./pages/beneficiary/BeneficiaryDashboard'));
+const MyCampaignPage = lazy(() => import('./pages/beneficiary/MyCampaignPage'));
+const BeneficiaryCampaignPage = lazy(() => import('./pages/beneficiary/BeneficiaryCampaignPage'));
+
+// Admin — lazy
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const BackofficePage = lazy(() => import('./pages/admin/BackofficePage'));
+const AdminUsersPage = lazy(() => import('./pages/admin/AdminUsersPage'));
+const AdminCatalogPage = lazy(() => import('./pages/admin/AdminCatalogPage'));
+const AdminBeneficiariesPage = lazy(() => import('./pages/admin/AdminBeneficiariesPage'));
+const AdminProductsPage = lazy(() => import('./pages/admin/AdminProductsPage'));
+const AdminTransferConfigPage = lazy(() => import('./pages/admin/AdminTransferConfigPage'));
+const AdminCampaignKitsPage = lazy(() => import('./pages/admin/AdminCampaignKitsPage'));
+const DeliveryManagementPage = lazy(() => import('./pages/admin/DeliveryManagementPage'));
 
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
@@ -53,6 +58,7 @@ function App() {
       <AuthProvider>
         <CartProvider>
           <BrowserRouter>
+            <Suspense fallback={<LoadingSpinner text="Cargando..." />}>
             <Routes>
               <Route element={<MainLayout />}>
                 {/* Public routes */}
@@ -68,7 +74,7 @@ function App() {
                 <Route
                   path="donor"
                   element={
-                    <ProtectedRoute allowedRoles={['ROLE_DONANTE', 'ROLE_EMPRESA', 'ROLE_ORGANIZACION']}>
+                    <ProtectedRoute allowedRoles={['ROLE_DONANTE', 'ROLE_ORGANIZACION']}>
                       <Navigate to="/donor/history" replace />
                     </ProtectedRoute>
                   }
@@ -76,7 +82,7 @@ function App() {
                 <Route
                   path="donor/cart"
                   element={
-                    <ProtectedRoute allowedRoles={['ROLE_DONANTE', 'ROLE_EMPRESA', 'ROLE_ORGANIZACION']}>
+                    <ProtectedRoute allowedRoles={['ROLE_DONANTE', 'ROLE_ORGANIZACION']}>
                       <CartPage />
                     </ProtectedRoute>
                   }
@@ -84,7 +90,7 @@ function App() {
                 <Route
                   path="donor/checkout"
                   element={
-                    <ProtectedRoute allowedRoles={['ROLE_DONANTE', 'ROLE_EMPRESA', 'ROLE_ORGANIZACION']}>
+                    <ProtectedRoute allowedRoles={['ROLE_DONANTE', 'ROLE_ORGANIZACION']}>
                       <CheckoutPage />
                     </ProtectedRoute>
                   }
@@ -92,16 +98,26 @@ function App() {
                 <Route
                   path="donor/history"
                   element={
-                    <ProtectedRoute allowedRoles={['ROLE_DONANTE', 'ROLE_EMPRESA', 'ROLE_ORGANIZACION']}>
+                    <ProtectedRoute allowedRoles={['ROLE_DONANTE', 'ROLE_ORGANIZACION']}>
                       <DonationHistoryPage />
                     </ProtectedRoute>
                   }
                 />
+                {/* Detalle de donación compartido (donante/admin/voluntario/beneficiario) */}
+                <Route
+                  path="donation/:id"
+                  element={
+                    <ProtectedRoute>
+                      <DonationDetailPage />
+                    </ProtectedRoute>
+                  }
+                />
+                {/* Alias histórico */}
                 <Route
                   path="donor/order/:id"
                   element={
                     <ProtectedRoute>
-                      <OrderTrackingPage />
+                      <DonationDetailPage />
                     </ProtectedRoute>
                   }
                 />
@@ -119,7 +135,7 @@ function App() {
                   path="beneficiary/campaign"
                   element={
                     <ProtectedRoute allowedRoles={['ROLE_BENEFICIARIO', 'ROLE_ORGANIZACION']}>
-                      <CreateCampaignPage />
+                      <MyCampaignPage />
                     </ProtectedRoute>
                   }
                 />
@@ -131,11 +147,12 @@ function App() {
                     </ProtectedRoute>
                   }
                 />
+                {/* Alias histórico */}
                 <Route
-                  path="beneficiary/tracking"
+                  path="beneficiary/donation/:id"
                   element={
-                    <ProtectedRoute allowedRoles={['ROLE_BENEFICIARIO']}>
-                      <BeneficiaryDashboard />
+                    <ProtectedRoute allowedRoles={['ROLE_BENEFICIARIO', 'ROLE_ORGANIZACION']}>
+                      <DonationDetailPage />
                     </ProtectedRoute>
                   }
                 />
@@ -154,6 +171,14 @@ function App() {
                   element={
                     <ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ROLE_VOLUNTARIO']}>
                       <BackofficePage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="admin/deliveries"
+                  element={
+                    <ProtectedRoute allowedRoles={['ROLE_ADMIN', 'ROLE_VOLUNTARIO']}>
+                      <DeliveryManagementPage />
                     </ProtectedRoute>
                   }
                 />
@@ -206,6 +231,14 @@ function App() {
                   }
                 />
                 <Route
+                  path="admin/campaigns/:id"
+                  element={
+                    <ProtectedRoute allowedRoles={['ROLE_ADMIN']}>
+                      <AdminCampaignKitsPage />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
                   path="admin/campaigns/:id/kits"
                   element={
                     <ProtectedRoute allowedRoles={['ROLE_ADMIN']}>
@@ -254,6 +287,7 @@ function App() {
                 />
               </Route>
             </Routes>
+            </Suspense>
           </BrowserRouter>
         </CartProvider>
       </AuthProvider>

@@ -1,14 +1,235 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { usersApi } from '../../api';
+import { useForm } from 'react-hook-form';
+import { usersApi, authApi } from '../../api';
 import { getErrorMessage } from '../../utils/errorHandler';
+import { isValidRut } from '../../utils/rutValidator';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import EmptyState from '../../components/ui/EmptyState';
 import toast from 'react-hot-toast';
-import { UsersIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { UsersIcon, MagnifyingGlassIcon, PlusIcon, XMarkIcon } from '@heroicons/react/24/outline';
+
+// ids de rol (data.sql): 1 ADMIN · 2 DONANTE · 3 VOLUNTARIO · 4 BENEFICIARIO · 5 ORGANIZACION
+const ROLE_BENEFICIARIO = 4;
+const ROLE_ORGANIZACION = 5;
+
+function CreateUserModal({ onClose, onCreated }) {
+  const { register, handleSubmit, watch, reset, formState: { errors } } = useForm({
+    defaultValues: { roleId: '' },
+  });
+  const roleId = Number(watch('roleId'));
+  const regionId = watch('regionId');
+  const isBeneficiario = roleId === ROLE_BENEFICIARIO;
+  const isOrganizacion = roleId === ROLE_ORGANIZACION;
+  const needsLocation = isBeneficiario || isOrganizacion;
+
+  const { data: roles = [] } = useQuery({
+    queryKey: ['roles'],
+    queryFn: () => usersApi.getRoles(),
+    select: (r) => r.data ?? [],
+  });
+  const { data: regions = [] } = useQuery({
+    queryKey: ['regions'],
+    queryFn: () => usersApi.getRegions(),
+    select: (r) => r.data ?? [],
+    enabled: needsLocation,
+  });
+  const { data: comunas = [] } = useQuery({
+    queryKey: ['comunas', regionId],
+    queryFn: () => usersApi.getComunasByRegion(regionId),
+    select: (r) => r.data ?? [],
+    enabled: needsLocation && !!regionId,
+  });
+
+  const createMutation = useMutation({
+    mutationFn: (form) => {
+      const base = {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        phone: form.phone || undefined,
+      };
+      if (isBeneficiario) {
+        return authApi.registerBeneficiary({
+          ...base,
+          rut: form.rut,
+          regionId: Number(form.regionId),
+          comunaId: Number(form.comunaId),
+          direccionEntrega: form.direccionEntrega,
+        });
+      }
+      if (isOrganizacion) {
+        return authApi.registerOrganization({
+          ...base,
+          rut: form.rut,
+          razonSocial: form.razonSocial,
+          giro: form.giro || undefined,
+          direccionLegal: form.direccionLegal || undefined,
+          regionId: Number(form.regionId),
+          comunaId: Number(form.comunaId),
+        });
+      }
+      return authApi.register({ ...base, roleId: Number(form.roleId) });
+    },
+    onSuccess: () => {
+      toast.success('Usuario creado correctamente');
+      reset();
+      onCreated();
+      onClose();
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-bold text-gray-900">Agregar usuario / colaborador</h2>
+          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600">
+            <XMarkIcon className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit((d) => createMutation.mutate(d))} className="space-y-4">
+          <div>
+            <label className="label">Rol</label>
+            <select {...register('roleId', { required: 'Selecciona un rol' })} className="input-field">
+              <option value="">Selecciona un rol...</option>
+              {roles.map((r) => (
+                <option key={r.id} value={r.id}>{r.name?.replace('ROLE_', '')}</option>
+              ))}
+            </select>
+            {errors.roleId && <p className="text-xs text-danger-600 mt-1">{errors.roleId.message}</p>}
+          </div>
+
+          <div>
+            <label className="label">Nombre</label>
+            <input
+              {...register('name', {
+                required: 'Nombre obligatorio',
+                minLength: { value: 4, message: 'Mínimo 4 caracteres' },
+                pattern: { value: /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ ]+$/, message: 'Solo letras y espacios' },
+              })}
+              className="input-field"
+              placeholder="Nombre completo"
+            />
+            {errors.name && <p className="text-xs text-danger-600 mt-1">{errors.name.message}</p>}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Email</label>
+              <input
+                {...register('email', {
+                  required: 'Email obligatorio',
+                  pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Email inválido' },
+                })}
+                className="input-field"
+                placeholder="correo@ejemplo.cl"
+              />
+              {errors.email && <p className="text-xs text-danger-600 mt-1">{errors.email.message}</p>}
+            </div>
+            <div>
+              <label className="label">Contraseña</label>
+              <input
+                type="password"
+                {...register('password', {
+                  required: 'Contraseña obligatoria',
+                  minLength: { value: 6, message: 'Mínimo 6 caracteres' },
+                })}
+                className="input-field"
+                placeholder="••••••"
+              />
+              {errors.password && <p className="text-xs text-danger-600 mt-1">{errors.password.message}</p>}
+            </div>
+          </div>
+
+          <div>
+            <label className="label">Teléfono (opcional)</label>
+            <input {...register('phone')} className="input-field" placeholder="+56 9 ..." />
+          </div>
+
+          {/* Campos condicionales por rol */}
+          {(isBeneficiario || isOrganizacion) && (
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">RUT</label>
+                <input
+                  {...register('rut', {
+                    required: 'RUT obligatorio',
+                    validate: (v) => isValidRut(v) || 'RUT inválido',
+                  })}
+                  className="input-field"
+                  placeholder="12.345.678-9"
+                />
+                {errors.rut && <p className="text-xs text-danger-600 mt-1">{errors.rut.message}</p>}
+              </div>
+              <div>
+                <label className="label">Región</label>
+                <select {...register('regionId', { required: 'Región obligatoria' })} className="input-field">
+                  <option value="">Selecciona...</option>
+                  {regions.map((r) => (
+                    <option key={r.id} value={r.id}>{r.nombre ?? r.name}</option>
+                  ))}
+                </select>
+                {errors.regionId && <p className="text-xs text-danger-600 mt-1">{errors.regionId.message}</p>}
+              </div>
+              <div>
+                <label className="label">Comuna</label>
+                <select {...register('comunaId', { required: 'Comuna obligatoria' })} className="input-field" disabled={!regionId}>
+                  <option value="">Selecciona...</option>
+                  {comunas.map((c) => (
+                    <option key={c.id} value={c.id}>{c.nombre ?? c.name}</option>
+                  ))}
+                </select>
+                {errors.comunaId && <p className="text-xs text-danger-600 mt-1">{errors.comunaId.message}</p>}
+              </div>
+              {isBeneficiario && (
+                <div>
+                  <label className="label">Dirección de entrega</label>
+                  <input {...register('direccionEntrega', { required: 'Dirección obligatoria' })} className="input-field" placeholder="Calle, número, comuna" />
+                  {errors.direccionEntrega && <p className="text-xs text-danger-600 mt-1">{errors.direccionEntrega.message}</p>}
+                </div>
+              )}
+            </div>
+          )}
+
+          {isOrganizacion && (
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2">
+                <label className="label">Razón social</label>
+                <input {...register('razonSocial', { required: 'Razón social obligatoria', maxLength: { value: 200, message: 'Máx 200' } })} className="input-field" />
+                {errors.razonSocial && <p className="text-xs text-danger-600 mt-1">{errors.razonSocial.message}</p>}
+              </div>
+              <div>
+                <label className="label">Giro (opcional)</label>
+                <input {...register('giro')} className="input-field" />
+              </div>
+              <div>
+                <label className="label">Dirección legal (opcional)</label>
+                <input {...register('direccionLegal')} className="input-field" />
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2 justify-end pt-2">
+            <button type="button" onClick={onClose} className="btn-secondary text-sm">Cancelar</button>
+            <button type="submit" disabled={createMutation.isPending} className="btn-primary text-sm">
+              {createMutation.isPending ? 'Creando...' : 'Crear usuario'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 export default function AdminUsersPage() {
   const [search, setSearch] = useState('');
+  const [showCreate, setShowCreate] = useState(false);
   const queryClient = useQueryClient();
 
   const { data: users = [], isLoading } = useQuery({
@@ -39,6 +260,9 @@ export default function AdminUsersPage() {
           <h1 className="section-title mb-1">Gestión de Usuarios</h1>
           <p className="text-gray-500">{users.length} usuarios registrados</p>
         </div>
+        <button onClick={() => setShowCreate(true)} className="btn-primary text-sm flex items-center gap-1.5">
+          <PlusIcon className="w-4 h-4" /> Agregar usuario
+        </button>
       </div>
 
       <div className="relative max-w-md mb-6">
@@ -103,6 +327,13 @@ export default function AdminUsersPage() {
             </table>
           </div>
         </div>
+      )}
+
+      {showCreate && (
+        <CreateUserModal
+          onClose={() => setShowCreate(false)}
+          onCreated={() => queryClient.invalidateQueries(['admin-users'])}
+        />
       )}
     </div>
   );

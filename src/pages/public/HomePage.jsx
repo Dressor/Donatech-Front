@@ -110,7 +110,7 @@ export default function HomePage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+      <section id="como-funciona" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 scroll-mt-20">
         <div className="text-center mb-12">
           <h2 className="section-title mb-3">¿Cómo funciona Donatech?</h2>
           <p className="text-gray-500 max-w-xl mx-auto">
@@ -139,7 +139,7 @@ export default function HomePage() {
       </section>
 
       {/* ACTIVE CAMPAIGNS */}
-      <section className="bg-gray-50/80 py-20">
+      <section id="campanas" className="bg-gray-50/80 py-20 scroll-mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between mb-10">
             <div>

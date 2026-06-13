@@ -35,5 +35,19 @@ export const catalogApi = {
   createCampaign: (data) => api.post('/api/campaigns', data),
   closeCampaign: (id) => api.patch(`/api/campaigns/${id}/close`),
   addKitToCampaign: (campaignId, data) => api.post(`/api/campaigns/${campaignId}/kits`, data),
+  updateCampaignKit: (campaignId, kitId, cantidadNecesaria) =>
+    api.patch(`/api/campaigns/${campaignId}/kits/${kitId}`, { cantidadNecesaria }),
   removeKitFromCampaign: (campaignId, kitId) => api.delete(`/api/campaigns/${campaignId}/kits/${kitId}`),
+
+  // Campaign images
+  getCampaignImages: (campaignId) => api.get(`/api/campaigns/${campaignId}/images`),
+  uploadCampaignImage: (campaignId, file) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api.post(`/api/campaigns/${campaignId}/images`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  deleteCampaignImage: (campaignId, imageId) => api.delete(`/api/campaigns/${campaignId}/images/${imageId}`),
+  getCampaignImageUrl: (campaignId, imageId) => `/api/campaigns/${campaignId}/images/${imageId}`,
 };

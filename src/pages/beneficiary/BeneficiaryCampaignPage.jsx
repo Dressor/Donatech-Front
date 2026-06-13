@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { catalogApi } from '../../api';
@@ -12,6 +12,8 @@ import {
   PlusCircleIcon,
   TrashIcon,
   ArrowLeftIcon,
+  PhotoIcon,
+  PlusIcon,
 } from '@heroicons/react/24/outline';
 
 export default function BeneficiaryCampaignPage() {
@@ -60,6 +62,39 @@ export default function BeneficiaryCampaignPage() {
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 
+  /* ── Fotos de campaña ── */
+  const { data: campaignImages = [], isLoading: loadingImages } = useQuery({
+    queryKey: ['campaign-images', id],
+    queryFn: () => catalogApi.getCampaignImages(id),
+    select: (r) => r.data ?? [],
+    enabled: !!id,
+  });
+
+  const uploadImageMutation = useMutation({
+    mutationFn: (file) => catalogApi.uploadCampaignImage(id, file),
+    onSuccess: () => {
+      toast.success('Foto subida correctamente');
+      queryClient.invalidateQueries(['campaign-images', id]);
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  const deleteImageMutation = useMutation({
+    mutationFn: (imageId) => catalogApi.deleteCampaignImage(id, imageId),
+    onSuccess: () => {
+      toast.success('Foto eliminada');
+      queryClient.invalidateQueries(['campaign-images', id]);
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  const handlePhotoSelect = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    uploadImageMutation.mutate(file);
+    e.target.value = '';
+  };
+
   if (loadingCampaign) return <LoadingSpinner />;
   if (!campaign) return (
     <div className="max-w-3xl mx-auto px-4 py-10 text-center">
@@ -69,6 +104,7 @@ export default function BeneficiaryCampaignPage() {
   );
 
   const isEditable = campaign.estado === 'ACTIVA' || campaign.estado === 'EN_VALIDACION';
+  const photoInputRef = useRef(null);
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -190,17 +226,19 @@ export default function BeneficiaryCampaignPage() {
                 className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl"
               >
                 <div>
-                  <p className="font-medium text-gray-800 text-sm">{ck.kit?.nombre ?? `Kit #${ck.kit?.id}`}</p>
+                  <p className="font-medium text-gray-800 text-sm">{ck.kitNombre ?? `Kit #${ck.kitId}`}</p>
                   <p className="text-xs text-gray-500 mt-0.5">
                     Necesarios: <span className="font-semibold">{ck.cantidadNecesaria}</span>
                     {' · '}
                     Recibidos: <span className="font-semibold text-green-600">{ck.cantidadFulfilled}</span>
+                    {' · '}
+                    Entregados: <span className="font-semibold text-primary-600">{ck.cantidadEntregada ?? 0}</span>
                   </p>
                 </div>
                 {isEditable && (
                   <button
                     onClick={() => {
-                      if (window.confirm(`¿Quitar el kit "${ck.kit?.nombre}" de la campaña?`))
+                      if (window.confirm(`¿Quitar el kit "${ck.kitNombre}" de la campaña?`))
                         removeMutation.mutate(ck.id);
                     }}
                     disabled={removeMutation.isPending}
@@ -210,6 +248,66 @@ export default function BeneficiaryCampaignPage() {
                     <TrashIcon className="w-4 h-4" />
                   </button>
                 )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Fotos de la campaña */}
+      <div className="card mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2">
+            <PhotoIcon className="w-5 h-5 text-primary-600" />
+            <h2 className="font-semibold text-gray-900">Fotos de la situación</h2>
+            <span className="text-xs text-gray-400">({campaignImages.length}/3)</span>
+          </div>
+          {campaignImages.length < 3 && (
+            <>
+              <input
+                type="file"
+                accept="image/*"
+                ref={photoInputRef}
+                className="hidden"
+                onChange={handlePhotoSelect}
+              />
+              <button
+                onClick={() => photoInputRef.current?.click()}
+                disabled={uploadImageMutation.isPending}
+                className="btn-primary text-sm flex items-center gap-1"
+              >
+                <PlusIcon className="w-4 h-4" />
+                {uploadImageMutation.isPending ? 'Subiendo...' : 'Agregar foto'}
+              </button>
+            </>
+          )}
+        </div>
+
+        {loadingImages ? (
+          <LoadingSpinner size="sm" />
+        ) : campaignImages.length === 0 ? (
+          <p className="text-sm text-gray-400 text-center py-4">
+            No hay fotos aún. Agrega hasta 3 imágenes que ilustren la situación de la campaña.
+          </p>
+        ) : (
+          <div className="grid grid-cols-3 gap-3">
+            {campaignImages.map((img) => (
+              <div key={img.id} className="relative group rounded-xl overflow-hidden aspect-square bg-gray-100">
+                <img
+                  src={catalogApi.getCampaignImageUrl(id, img.id)}
+                  alt={`Foto ${img.orden}`}
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  onClick={() => {
+                    if (window.confirm('¿Eliminar esta foto?'))
+                      deleteImageMutation.mutate(img.id);
+                  }}
+                  disabled={deleteImageMutation.isPending}
+                  className="absolute top-1.5 right-1.5 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                >
+                  <TrashIcon className="w-3.5 h-3.5" />
+                </button>
               </div>
             ))}
           </div>

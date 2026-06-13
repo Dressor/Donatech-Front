@@ -15,10 +15,10 @@ const statusMap = {
   ACTIVA: { label: 'Activa', cls: 'badge-success' },
   INACTIVA: { label: 'Inactiva', cls: 'badge-gray' },
   FINALIZADA: { label: 'Finalizada', cls: 'badge-gray' },
-  // Support
-  ABIERTO: { label: 'Abierto', cls: 'badge-danger' },
-  EN_PROCESO: { label: 'En Proceso', cls: 'badge-warning' },
+  // Support (EstadoSoporte backend)
+  EN_PROGRESO: { label: 'En Progreso', cls: 'badge-warning' },
   RESUELTO: { label: 'Resuelto', cls: 'badge-success' },
+  CANCELADO: { label: 'Cancelado', cls: 'badge-danger' },
   CERRADO: { label: 'Cerrado', cls: 'badge-gray' },
   // Beneficiary
   PENDIENTE: { label: 'Pendiente', cls: 'badge-warning' },

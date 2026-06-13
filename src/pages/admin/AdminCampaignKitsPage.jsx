@@ -12,12 +12,17 @@ import {
   PlusCircleIcon,
   TrashIcon,
   ArrowLeftIcon,
+  PhotoIcon,
+  CheckIcon,
+  PencilIcon,
 } from '@heroicons/react/24/outline';
 
 export default function AdminCampaignKitsPage() {
   const { id } = useParams();
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
+  const [editingKitId, setEditingKitId] = useState(null);
+  const [editQty, setEditQty] = useState('');
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
   const { data: campaign, isLoading: loadingCampaign } = useQuery({
@@ -26,11 +31,20 @@ export default function AdminCampaignKitsPage() {
     select: (r) => r.data,
   });
 
+  const { data: campaignImages = [] } = useQuery({
+    queryKey: ['campaign-images', id],
+    queryFn: () => catalogApi.getCampaignImages(id),
+    select: (r) => r.data ?? [],
+    enabled: !!id,
+  });
+
   const { data: kits = [], isLoading: loadingKits } = useQuery({
     queryKey: ['kits'],
     queryFn: () => catalogApi.getKits(),
     select: (r) => r.data ?? [],
   });
+
+  const invalidate = () => queryClient.invalidateQueries(['campaign', id]);
 
   const addMutation = useMutation({
     mutationFn: (data) =>
@@ -40,9 +54,20 @@ export default function AdminCampaignKitsPage() {
       }),
     onSuccess: () => {
       toast.success('Kit agregado a la campaña');
-      queryClient.invalidateQueries(['campaign', id]);
+      invalidate();
       reset();
       setShowForm(false);
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ kitId, cantidadNecesaria }) =>
+      catalogApi.updateCampaignKit(id, kitId, cantidadNecesaria),
+    onSuccess: () => {
+      toast.success('Cantidad necesaria actualizada');
+      invalidate();
+      setEditingKitId(null);
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -51,7 +76,7 @@ export default function AdminCampaignKitsPage() {
     mutationFn: (kitId) => catalogApi.removeKitFromCampaign(id, kitId),
     onSuccess: () => {
       toast.success('Kit eliminado de la campaña');
-      queryClient.invalidateQueries(['campaign', id]);
+      invalidate();
     },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -65,6 +90,20 @@ export default function AdminCampaignKitsPage() {
   );
 
   const isEditable = campaign.estado === 'ACTIVA' || campaign.estado === 'EN_VALIDACION';
+
+  const startEdit = (ck) => {
+    setEditingKitId(ck.kitId);
+    setEditQty(String(ck.cantidadNecesaria ?? 1));
+  };
+
+  const saveEdit = (ck) => {
+    const value = Number(editQty);
+    if (!value || value < 1) {
+      toast.error('La cantidad necesaria debe ser al menos 1');
+      return;
+    }
+    updateMutation.mutate({ kitId: ck.kitId, cantidadNecesaria: value });
+  };
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -92,11 +131,32 @@ export default function AdminCampaignKitsPage() {
         )}
       </div>
 
+      {/* Fotos de la campaña */}
+      {campaignImages.length > 0 && (
+        <div className="card mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <PhotoIcon className="w-5 h-5 text-primary-600" />
+            <h2 className="font-semibold text-gray-900">Fotos de la situación</h2>
+          </div>
+          <div className={`grid gap-3 ${campaignImages.length === 1 ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'}`}>
+            {campaignImages.map((img) => (
+              <div key={img.id} className="rounded-xl overflow-hidden aspect-square bg-gray-100">
+                <img
+                  src={catalogApi.getCampaignImageUrl(id, img.id)}
+                  alt={`Foto ${img.orden}`}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="card mb-6">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <CubeIcon className="w-5 h-5 text-primary-600" />
-            <h2 className="font-semibold text-gray-900">Kits asignados</h2>
+            <h2 className="font-semibold text-gray-900">Kits de la campaña</h2>
           </div>
           {isEditable && (
             <button
@@ -178,24 +238,58 @@ export default function AdminCampaignKitsPage() {
             {campaign.kits.map((ck) => (
               <div
                 key={ck.id}
-                className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl"
+                className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl gap-3"
               >
-                <div>
-                  <p className="font-medium text-gray-800 text-sm">{ck.kit?.nombre ?? `Kit #${ck.kit?.id}`}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Necesarios: <span className="font-semibold">{ck.cantidadNecesaria}</span>
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-800 text-sm">{ck.kitNombre ?? `Kit #${ck.kitId}`}</p>
+                  <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1 flex-wrap">
+                    {editingKitId === ck.kitId ? (
+                      <span className="inline-flex items-center gap-1">
+                        Necesarios:
+                        <input
+                          type="number"
+                          min="1"
+                          value={editQty}
+                          onChange={(e) => setEditQty(e.target.value)}
+                          className="w-16 px-2 py-0.5 border border-gray-300 rounded text-xs"
+                        />
+                        <button
+                          onClick={() => saveEdit(ck)}
+                          disabled={updateMutation.isPending}
+                          className="p-1 text-green-600 hover:bg-green-50 rounded"
+                          title="Guardar"
+                        >
+                          <CheckIcon className="w-4 h-4" />
+                        </button>
+                      </span>
+                    ) : (
+                      <span>
+                        Necesarios: <span className="font-semibold">{ck.cantidadNecesaria}</span>
+                        {isEditable && (
+                          <button
+                            onClick={() => startEdit(ck)}
+                            className="ml-1 p-0.5 text-gray-400 hover:text-primary-600"
+                            title="Editar cantidad"
+                          >
+                            <PencilIcon className="w-3 h-3 inline" />
+                          </button>
+                        )}
+                      </span>
+                    )}
                     {' · '}
                     Recibidos: <span className="font-semibold text-green-600">{ck.cantidadFulfilled}</span>
+                    {' · '}
+                    Entregados: <span className="font-semibold text-primary-600">{ck.cantidadEntregada ?? 0}</span>
                   </p>
                 </div>
                 {isEditable && (
                   <button
                     onClick={() => {
-                      if (window.confirm(`¿Quitar el kit "${ck.kit?.nombre}" de la campaña?`))
-                        removeMutation.mutate(ck.id);
+                      if (window.confirm(`¿Quitar el kit "${ck.kitNombre}" de la campaña?`))
+                        removeMutation.mutate(ck.kitId);
                     }}
                     disabled={removeMutation.isPending}
-                    className="p-2 text-danger-500 hover:bg-danger-50 rounded-lg transition-colors"
+                    className="p-2 text-danger-500 hover:bg-danger-50 rounded-lg transition-colors flex-shrink-0"
                     title="Eliminar kit"
                   >
                     <TrashIcon className="w-4 h-4" />

@@ -32,4 +32,14 @@ export const usersApi = {
   getAllCompanies: () => api.get('/api/beneficiaries'),
   getCompaniesByStatus: (estado) => api.get('/api/beneficiaries/by-estado', { params: { estado } }),
   verifyCompany: (id, data) => api.patch(`/api/beneficiaries/${id}/verify`, data),
+
+  // Avatar
+  uploadAvatar: (id, file) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api.post(`/api/users/${id}/avatar`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  getAvatar: (id) => api.get(`/api/users/${id}/avatar`, { responseType: 'blob' }),
 };

@@ -5,7 +5,7 @@ import { ShoppingCartIcon, TrashIcon, MinusIcon, PlusIcon } from '@heroicons/rea
 import { Link } from 'react-router-dom';
 
 export default function CartPage() {
-  const { items, removeItem, updateQuantity, total, clear } = useCart();
+  const { items, removeItem, updateQuantity, total, clear, coupon, setCoupon } = useCart();
   const navigate = useNavigate();
 
   if (items.length === 0) {
@@ -88,6 +88,16 @@ export default function CartPage() {
                 </span>
               </div>
             ))}
+          </div>
+          {/* Cupón (opcional) */}
+          <div className="mb-4">
+            <label className="label">Código de cupón (opcional)</label>
+            <input
+              value={coupon}
+              onChange={(e) => setCoupon(e.target.value)}
+              placeholder="Ingresa tu código..."
+              className="input-field"
+            />
           </div>
           <div className="border-t border-gray-100 pt-3 mb-5">
             <div className="flex justify-between font-semibold text-gray-900">

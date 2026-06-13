@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { catalogApi } from '../../api';
@@ -5,12 +6,15 @@ import { useCart } from '../../context/CartContext';
 import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import StatusBadge from '../../components/ui/StatusBadge';
+import KitDetailModal from '../../components/ui/KitDetailModal';
 import toast from 'react-hot-toast';
 import {
   MapPinIcon,
   ShoppingCartIcon,
   HeartIcon,
   CubeIcon,
+  EyeIcon,
+  PhotoIcon,
 } from '@heroicons/react/24/outline';
 
 export default function CampaignDetailPage() {
@@ -18,6 +22,7 @@ export default function CampaignDetailPage() {
   const { addItem, setCampaignId } = useCart();
   const { isAuthenticated, isDonante } = useAuth();
   const navigate = useNavigate();
+  const [selectedKit, setSelectedKit] = useState(null);
 
   const { data: campaign, isLoading } = useQuery({
     queryKey: ['campaign', id],
@@ -25,10 +30,19 @@ export default function CampaignDetailPage() {
     select: (r) => r.data,
   });
 
+  const { data: campaignImages = [] } = useQuery({
+    queryKey: ['campaign-images', id],
+    queryFn: () => catalogApi.getCampaignImages(id),
+    select: (r) => r.data ?? [],
+    enabled: !!id,
+  });
+
+  const [lightboxImg, setLightboxImg] = useState(null);
+
   if (isLoading) return <LoadingSpinner text="Cargando campaña..." />;
   if (!campaign) return <div className="text-center py-20 text-gray-400">Campaña no encontrada</div>;
 
-  const handleAddKit = (kit) => {
+  const handleAddKit = (ck) => {
     if (!isAuthenticated) {
       toast.error('Debes iniciar sesión para donar');
       navigate('/login');
@@ -39,8 +53,8 @@ export default function CampaignDetailPage() {
       return;
     }
     setCampaignId(campaign.id);
-    addItem(kit);
-    toast.success(`${kit.nombre} agregado al carrito`);
+    addItem({ id: ck.kitId, nombre: ck.kitNombre, precioEstimado: ck.kitPrecioEstimado });
+    toast.success(`${ck.kitNombre} agregado al carrito`);
   };
 
   return (
@@ -54,11 +68,12 @@ export default function CampaignDetailPage() {
           <div>
             <h1 className="text-2xl font-bold text-gray-900 mb-2">{campaign.titulo}</h1>
             <div className="flex items-center gap-3 flex-wrap">
-              <StatusBadge status={campaign.status} />
+              <StatusBadge status={campaign.estado ?? campaign.status} />
               {(campaign.region || campaign.comuna) && (
                 <span className="flex items-center gap-1 text-sm text-gray-500">
                   <MapPinIcon className="w-4 h-4" />
-                  {campaign.comuna?.nombre ?? campaign.comuna?.name ?? ''}{campaign.region ? `, ${campaign.region?.nombre ?? campaign.region?.name ?? campaign.region}` : ''}
+                  {campaign.comuna?.nombre ?? campaign.comuna?.name ?? ''}
+                  {campaign.region ? `, ${campaign.region?.nombre ?? campaign.region?.name ?? campaign.region}` : ''}
                 </span>
               )}
             </div>
@@ -79,54 +94,115 @@ export default function CampaignDetailPage() {
         </div>
       </div>
 
+      {/* Fotos de la campaña */}
+      {campaignImages.length > 0 && (
+        <div className="card mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <PhotoIcon className="w-5 h-5 text-primary-600" />
+            <h2 className="font-semibold text-gray-900">Fotos de la situación</h2>
+          </div>
+          <div className={`grid gap-3 ${campaignImages.length === 1 ? 'grid-cols-1' : 'grid-cols-2 sm:grid-cols-3'}`}>
+            {campaignImages.map((img) => (
+              <button
+                key={img.id}
+                onClick={() => setLightboxImg(img)}
+                className="relative group rounded-xl overflow-hidden aspect-square bg-gray-100 focus:outline-none"
+              >
+                <img
+                  src={catalogApi.getCampaignImageUrl(id, img.id)}
+                  alt={`Foto ${img.orden}`}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                  <EyeIcon className="w-6 h-6 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Lightbox */}
+      {lightboxImg && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+          onClick={() => setLightboxImg(null)}
+        >
+          <img
+            src={catalogApi.getCampaignImageUrl(id, lightboxImg.id)}
+            alt="Foto campaña"
+            className="max-w-full max-h-[90vh] rounded-xl shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
       {/* Kits */}
       <div>
         <h2 className="section-title mb-4 text-xl">Kits disponibles para donar</h2>
         {campaign.kits?.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {campaign.kits.map((ck) => {
-              const kit = ck.kit ?? ck;
+              const fulfilled = ck.cantidadFulfilled ?? 0;
+              const delivered = ck.cantidadEntregada ?? 0;
+              const needed = ck.cantidadNecesaria ?? 1;
+              const pct = Math.min(100, Math.round((fulfilled / needed) * 100));
+              const complete = pct >= 100;
+
               return (
-                <div key={kit.id} className="card flex flex-col gap-3">
+                <div key={ck.id} className="card flex flex-col gap-3">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-xl bg-gradient-blue flex items-center justify-center flex-shrink-0">
                       <CubeIcon className="w-5 h-5 text-white" />
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{kit.nombre}</h3>
-                      {kit.precioBase && (
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-semibold text-gray-900 truncate">{ck.kitNombre}</h3>
+                      {ck.kitPrecioEstimado > 0 && (
                         <p className="text-sm text-primary-600 font-medium">
-                          ${kit.precioBase?.toLocaleString('es-CL')} CLP
+                          ${ck.kitPrecioEstimado.toLocaleString('es-CL')} CLP
                         </p>
                       )}
                     </div>
                   </div>
 
-                  {kit.descripcion && (
-                    <p className="text-sm text-gray-500">{kit.descripcion}</p>
-                  )}
-
-                  {kit.items?.length > 0 && (
-                    <div className="bg-gray-50 rounded-lg p-3">
-                      <p className="text-xs font-medium text-gray-600 mb-2">Contenido del kit:</p>
-                      <ul className="space-y-1">
-                        {kit.items.map((item, i) => (
-                          <li key={i} className="text-xs text-gray-500 flex items-center gap-1.5">
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary-400 flex-shrink-0" />
-                            {item.producto?.nombre ?? item.productoNombre} × {item.cantidad}
-                          </li>
-                        ))}
-                      </ul>
+                  {/* Progress bar */}
+                  <div>
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <span>Recibidos: <span className="font-semibold text-gray-700">{fulfilled}</span></span>
+                      <span>Necesarios: <span className="font-semibold text-gray-700">{needed}</span></span>
                     </div>
-                  )}
+                    <div className="w-full bg-gray-100 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all ${complete ? 'bg-green-500' : 'bg-primary-500'}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Entregados: <span className="font-semibold text-gray-600">{delivered}</span>
+                    </p>
+                    {complete && (
+                      <p className="text-xs text-green-600 font-medium mt-1">¡Meta alcanzada!</p>
+                    )}
+                  </div>
 
-                  <button
-                    onClick={() => handleAddKit(kit)}
-                    className="btn-primary text-sm flex items-center justify-center gap-2"
-                  >
-                    <ShoppingCartIcon className="w-4 h-4" />
-                    Agregar al carrito
-                  </button>
+                  {/* Actions */}
+                  <div className="flex gap-2 mt-auto">
+                    <button
+                      onClick={() => setSelectedKit({ kitId: ck.kitId, kitNombre: ck.kitNombre })}
+                      className="btn-secondary text-sm flex items-center justify-center gap-1.5 flex-1"
+                    >
+                      <EyeIcon className="w-4 h-4" />
+                      Ver contenido
+                    </button>
+                    <button
+                      onClick={() => handleAddKit(ck)}
+                      disabled={complete}
+                      className="btn-primary text-sm flex items-center justify-center gap-1.5 flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <ShoppingCartIcon className="w-4 h-4" />
+                      Donar kit
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -137,6 +213,14 @@ export default function CampaignDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Kit detail modal */}
+      {selectedKit && (
+        <KitDetailModal
+          kitId={selectedKit.kitId}
+          onClose={() => setSelectedKit(null)}
+        />
+      )}
     </div>
   );
 }
