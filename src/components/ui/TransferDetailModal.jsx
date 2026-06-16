@@ -14,8 +14,10 @@ export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
   const [rejecting, setRejecting] = useState(false);
   const [motivo, setMotivo] = useState('');
   const [respuesta, setRespuesta] = useState('');
+  const [logistica, setLogistica] = useState('');
 
   const isValidation = ['VALIDACION_TRANSFERENCIA', 'VALIDACION_CAMPAÑA'].includes(ticket.tipo);
+  const isCampaignValidation = ticket.tipo === 'VALIDACION_CAMPAÑA';
 
   const { data: order, isLoading: loadingOrder } = useQuery({
     queryKey: ['order', ticket.donationId],
@@ -62,7 +64,7 @@ export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
     mutationFn: () =>
       ticket.tipo === 'VALIDACION_TRANSFERENCIA'
         ? supportsApi.validateTransfer(ticket.id, true)
-        : supportsApi.validateCampaign(ticket.id, true),
+        : supportsApi.validateCampaign(ticket.id, true, '', Number(logistica) || 0),
     onSuccess: () => { toast.success('Aprobado exitosamente'); onSuccess(); },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
@@ -324,7 +326,24 @@ export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
                   </div>
                 </div>
               ) : (
-                <div className="flex gap-3">
+                <div className="space-y-3">
+                  {isCampaignValidation && (
+                    <div>
+                      <label className="label">Costo de logística por kit (CLP)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={logistica}
+                        onChange={(e) => setLogistica(e.target.value)}
+                        placeholder="Ej: 3000"
+                        className="input-field w-44"
+                      />
+                      <p className="text-xs text-gray-400 mt-0.5">
+                        Se cobra al donante por cada kit donado a esta campaña. Editable luego mientras esté activa.
+                      </p>
+                    </div>
+                  )}
+                  <div className="flex gap-3">
                   <button
                     onClick={() => approveMutation.mutate()}
                     disabled={approveMutation.isPending}
@@ -340,6 +359,7 @@ export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
                     <XCircleIcon className="w-4 h-4" />
                     Rechazar
                   </button>
+                  </div>
                 </div>
               )}
             </section>

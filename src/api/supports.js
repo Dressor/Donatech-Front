@@ -11,8 +11,8 @@ export const supportsApi = {
   assign: (id, voluntarioId) =>
     api.patch(`/api/supports/${id}/assign`, null, { params: { voluntarioId } }),
   respond: (id, data) => api.patch(`/api/supports/${id}/respond`, data),
-  validateCampaign: (id, approved, motivo) =>
-    api.patch(`/api/supports/${id}/validate-campaign`, null, { params: { approved, motivo } }),
+  validateCampaign: (id, approved, motivo, logistica) =>
+    api.patch(`/api/supports/${id}/validate-campaign`, null, { params: { approved, motivo, logistica } }),
   validateTransfer: (id, approved, motivo) =>
     api.patch(`/api/supports/${id}/validate-transfer`, null, { params: { approved, motivo } }),
   delete: (id) => api.delete(`/api/supports/${id}`),

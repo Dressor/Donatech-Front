@@ -19,9 +19,10 @@ export const catalogApi = {
   getUnits: () => api.get('/api/products/units'),
 
   // Kits
-  getKits: () => api.get('/api/kits'),
+  getKits: (tipo) => api.get('/api/kits', tipo ? { params: { tipo } } : undefined),
   getKitById: (id) => api.get(`/api/kits/${id}`),
   createKit: (data) => api.post('/api/kits', data),
+  createPersonalizedKit: (data) => api.post('/api/kits/personalized', data),
   updateKit: (id, data) => api.put(`/api/kits/${id}`, data),
   deleteKit: (id) => api.delete(`/api/kits/${id}`),
   uploadKitImage: (id, formData) => api.post(`/api/kits/${id}/image`, formData, { headers: { 'Content-Type': 'multipart/form-data' } }),
@@ -34,6 +35,7 @@ export const catalogApi = {
   getCampaignsByBeneficiary: (id) => api.get(`/api/campaigns/by-beneficiary/${id}`),
   createCampaign: (data) => api.post('/api/campaigns', data),
   closeCampaign: (id) => api.patch(`/api/campaigns/${id}/close`),
+  updateCampaignLogistica: (id, monto) => api.patch(`/api/campaigns/${id}/logistica`, { monto }),
   addKitToCampaign: (campaignId, data) => api.post(`/api/campaigns/${campaignId}/kits`, data),
   updateCampaignKit: (campaignId, kitId, cantidadNecesaria) =>
     api.patch(`/api/campaigns/${campaignId}/kits/${kitId}`, { cantidadNecesaria }),

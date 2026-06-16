@@ -69,17 +69,17 @@ function KitForm({ kit, products, onCancel, onSaved }) {
     if (!kitDetail) return;
     const items = Array.isArray(kitDetail.items) ? kitDetail.items : [];
     setKitItems(items.map((i) => ({
-      // Backend field is "product" (Java camelCase), not "producto"
-      productId: i.product?.id ?? i.productId,
-      nombre: i.product?.nombre ?? `Producto #${i.product?.id ?? '?'}`,
-      precio: i.product?.precio ?? 0,
+      // KitItemResponseDto expone campos planos: productId / productNombre / productPrecio
+      productId: i.productId ?? i.product?.id,
+      nombre: i.productNombre ?? i.product?.nombre ?? `Producto #${i.productId ?? i.product?.id ?? '?'}`,
+      precio: i.productPrecio ?? i.product?.precio ?? 0,
       cantidadRequerida: i.cantidadRequerida,
     })));
   }, [kitDetail]);
 
   const { register, handleSubmit, reset } = useForm({
     defaultValues: kit
-      ? { nombre: kit.nombre, descripcion: kit.descripcion, precioEstimado: kit.precioEstimado }
+      ? { nombre: kit.nombre, descripcion: kit.descripcion }
       : {},
   });
 
@@ -89,7 +89,6 @@ function KitForm({ kit, products, onCancel, onSaved }) {
     reset({
       nombre: kitDetail.nombre,
       descripcion: kitDetail.descripcion,
-      precioEstimado: kitDetail.precioEstimado,
     });
   }, [kitDetail, reset]);
 
@@ -135,10 +134,10 @@ function KitForm({ kit, products, onCancel, onSaved }) {
 
   const onSubmit = (formData) => {
     if (kitItems.length === 0) { toast.error('Agrega al menos un producto'); return; }
+    // El precio lo calcula el backend (productos + logística); no se envía.
     const payload = {
       nombre: formData.nombre,
       descripcion: formData.descripcion,
-      precioEstimado: Number(formData.precioEstimado) || calcPrecio(),
       items: kitItems.map(({ productId, cantidadRequerida }) => ({ productId, cantidadRequerida })),
     };
     const imageFile = formData.imagenFile?.[0];
@@ -163,9 +162,11 @@ function KitForm({ kit, products, onCancel, onSaved }) {
           <input {...register('nombre', { required: true })} className="input-field" placeholder="Kit Alimentación Básica" />
         </div>
         <div>
-          <label className="label">Precio estimado (CLP)</label>
-          <input {...register('precioEstimado')} type="number" className="input-field" placeholder={`Auto: $${calcPrecio().toLocaleString('es-CL')}`} />
-          <p className="text-xs text-gray-400 mt-0.5">Calculado: ${calcPrecio().toLocaleString('es-CL')}</p>
+          <label className="label">Precio (automático)</label>
+          <div className="input-field bg-gray-50 text-gray-700 flex items-center justify-between">
+            <span className="font-semibold">${calcPrecio().toLocaleString('es-CL')} CLP</span>
+          </div>
+          <p className="text-xs text-gray-400 mt-0.5">Suma de los productos del kit.</p>
         </div>
         <div className="col-span-2">
           <label className="label">Descripción</label>
@@ -369,6 +370,7 @@ function ProductForm({ product, categories, units, onCancel, onSaved }) {
 export default function AdminCatalogPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('kits');
+  const [kitFilter, setKitFilter] = useState('STANDARD'); // STANDARD | USO_UNICO | ALL
   const [showKitForm, setShowKitForm] = useState(false);
   const [editingKit, setEditingKit] = useState(null);
   const [showProductForm, setShowProductForm] = useState(false);
@@ -384,8 +386,8 @@ export default function AdminCatalogPage() {
   };
 
   const { data: kits = [], isLoading: kitsLoading } = useQuery({
-    queryKey: ['admin-kits'],
-    queryFn: () => catalogApi.getKits(),
+    queryKey: ['admin-kits', kitFilter],
+    queryFn: () => catalogApi.getKits(kitFilter),
     select: toArray,
   });
 
@@ -436,6 +438,70 @@ export default function AdminCatalogPage() {
     { key: 'campaigns', label: 'Campañas' },
   ];
 
+  const kitFilters = [
+    { key: 'STANDARD', label: 'Generales' },
+    { key: 'USO_UNICO', label: 'Personalizados' },
+    { key: 'ALL', label: 'Todos' },
+  ];
+
+  const renderKitCard = (kit) => (
+    <div key={kit.id} className="card flex flex-col">
+      <div className="flex items-start gap-3 mb-3">
+        <div className="w-10 h-10 rounded-xl bg-gradient-blue flex items-center justify-center flex-shrink-0">
+          <CubeIcon className="w-5 h-5 text-white" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="font-semibold text-gray-900 text-sm truncate">{kit.nombre}</h3>
+          {kit.precioEstimado != null && (
+            <p className="text-xs text-primary-600">${kit.precioEstimado?.toLocaleString('es-CL')} CLP</p>
+          )}
+          {kit.tipo === 'USO_UNICO' && (
+            <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium">
+              Personalizado{kit.campaignTitulo ? ` · ${kit.campaignTitulo}` : ''}
+            </span>
+          )}
+        </div>
+      </div>
+
+      {kit.descripcion && (
+        <p className="text-xs text-gray-500 line-clamp-2 mb-2">{kit.descripcion}</p>
+      )}
+
+      {Array.isArray(kit.items) && kit.items.length > 0 ? (
+        <div className="space-y-1 mb-3">
+          {kit.items.slice(0, 3).map((item) => (
+            <div key={item.id} className="flex justify-between text-xs text-gray-500">
+              <span>{item.product?.nombre ?? item.productNombre ?? `Producto #${item.product?.id ?? item.productId ?? '?'}`}</span>
+              <span className="text-gray-400">× {item.cantidadRequerida}</span>
+            </div>
+          ))}
+          {kit.items.length > 3 && <p className="text-xs text-gray-400">+{kit.items.length - 3} más</p>}
+        </div>
+      ) : (
+        <p className="text-xs text-gray-400 italic mb-3">Sin productos asignados</p>
+      )}
+
+      <div className="flex gap-2 mt-auto pt-2 border-t border-gray-100">
+        <button
+          onClick={() => { setShowKitForm(false); setEditingKit(kit); }}
+          className="flex-1 text-xs px-2.5 py-1.5 rounded-lg bg-blue-50 text-primary-700 hover:bg-blue-100 transition-colors flex items-center justify-center gap-1"
+        >
+          <PencilIcon className="w-3 h-3" />
+          Editar
+        </button>
+        <button
+          onClick={() => {
+            if (window.confirm(`¿Eliminar el kit "${kit.nombre}"?`)) deleteKitMutation.mutate(kit.id);
+          }}
+          className="flex-1 text-xs px-2.5 py-1.5 rounded-lg bg-red-50 text-danger-600 hover:bg-red-100 transition-colors flex items-center justify-center gap-1"
+        >
+          <TrashIcon className="w-3 h-3" />
+          Eliminar
+        </button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="mb-8">
@@ -461,7 +527,21 @@ export default function AdminCatalogPage() {
       {/* ── Kits Tab ── */}
       {tab === 'kits' && (
         <div>
-          <div className="flex justify-end mb-4">
+          <div className="flex justify-between items-center mb-4 flex-wrap gap-2">
+            {/* Filtro Generales / Personalizados / Todos */}
+            <div className="flex gap-1 bg-gray-100 rounded-xl p-1 w-fit">
+              {kitFilters.map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => setKitFilter(f.key)}
+                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                    kitFilter === f.key ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
             <button
               onClick={() => { setEditingKit(null); setShowKitForm(true); }}
               className="btn-primary text-sm flex items-center gap-1.5"
@@ -485,65 +565,36 @@ export default function AdminCatalogPage() {
             <LoadingSpinner />
           ) : kits.length === 0 ? (
             <div className="card text-center py-12 text-gray-500">
-              <p className="font-medium">No hay kits creados</p>
-              <p className="text-sm mt-1">Crea productos primero, luego arma kits.</p>
+              <p className="font-medium">No hay kits para este filtro</p>
+              <p className="text-sm mt-1">
+                {kitFilter === 'USO_UNICO'
+                  ? 'Aún no se han creado kits personalizados en campañas.'
+                  : 'Crea productos primero, luego arma kits.'}
+              </p>
             </div>
+          ) : kitFilter === 'USO_UNICO' ? (
+            // Agrupados por campaña
+            Object.entries(
+              kits.reduce((acc, k) => {
+                const key = k.campaignTitulo ?? 'Sin campaña';
+                (acc[key] = acc[key] || []).push(k);
+                return acc;
+              }, {})
+            ).map(([campania, lista]) => (
+              <div key={campania} className="mb-6">
+                <h3 className="text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+                  {campania}
+                  <span className="text-gray-400 font-normal">({lista.length})</span>
+                </h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {lista.map(renderKitCard)}
+                </div>
+              </div>
+            ))
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {kits.map((kit) => (
-                <div key={kit.id} className="card flex flex-col">
-                  <div className="flex items-start gap-3 mb-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-blue flex items-center justify-center flex-shrink-0">
-                      <CubeIcon className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 text-sm truncate">{kit.nombre}</h3>
-                      {kit.precioEstimado && (
-                        <p className="text-xs text-primary-600">${kit.precioEstimado?.toLocaleString('es-CL')} CLP</p>
-                      )}
-                    </div>
-                  </div>
-
-                  {kit.descripcion && (
-                    <p className="text-xs text-gray-500 line-clamp-2 mb-2">{kit.descripcion}</p>
-                  )}
-
-                  {Array.isArray(kit.items) && kit.items.length > 0 ? (
-                    <div className="space-y-1 mb-3">
-                      {kit.items.slice(0, 3).map((item) => (
-                        <div key={item.id} className="flex justify-between text-xs text-gray-500">
-                          <span>{item.product?.nombre ?? item.producto?.nombre ?? `Producto #${item.product?.id ?? item.productId ?? '?'}`}</span>
-                          <span className="text-gray-400">× {item.cantidadRequerida}</span>
-                        </div>
-                      ))}
-                      {kit.items.length > 3 && (
-                      <p className="text-xs text-gray-400">+{kit.items.length - 3} más</p>
-                    )}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-gray-400 italic mb-3">Sin productos asignados</p>
-                  )}
-
-                  <div className="flex gap-2 mt-auto pt-2 border-t border-gray-100">
-                    <button
-                      onClick={() => { setShowKitForm(false); setEditingKit(kit); }}
-                      className="flex-1 text-xs px-2.5 py-1.5 rounded-lg bg-blue-50 text-primary-700 hover:bg-blue-100 transition-colors flex items-center justify-center gap-1"
-                    >
-                      <PencilIcon className="w-3 h-3" />
-                      Editar
-                    </button>
-                    <button
-                      onClick={() => {
-                        if (window.confirm(`¿Eliminar el kit "${kit.nombre}"?`)) deleteKitMutation.mutate(kit.id);
-                      }}
-                      className="flex-1 text-xs px-2.5 py-1.5 rounded-lg bg-red-50 text-danger-600 hover:bg-red-100 transition-colors flex items-center justify-center gap-1"
-                    >
-                      <TrashIcon className="w-3 h-3" />
-                      Eliminar
-                    </button>
-                  </div>
-                </div>
-              ))}
+              {kits.map(renderKitCard)}
             </div>
           )}
         </div>

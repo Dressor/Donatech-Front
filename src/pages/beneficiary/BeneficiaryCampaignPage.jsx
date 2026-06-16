@@ -7,6 +7,9 @@ import { useForm } from 'react-hook-form';
 import toast from 'react-hot-toast';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import StatusBadge from '../../components/ui/StatusBadge';
+import AIChatModal from '../../components/ui/AIChatModal';
+import ManualKitForm from '../../components/ui/ManualKitForm';
+import { useAuth } from '../../context/AuthContext';
 import {
   CubeIcon,
   PlusCircleIcon,
@@ -14,12 +17,17 @@ import {
   ArrowLeftIcon,
   PhotoIcon,
   PlusIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
 
 export default function BeneficiaryCampaignPage() {
   const { id } = useParams();
   const queryClient = useQueryClient();
+  const { user } = useAuth();
   const [showForm, setShowForm] = useState(false);
+  const [showAIChat, setShowAIChat] = useState(false);
+  const [showManualKit, setShowManualKit] = useState(false);
+  const photoInputRef = useRef(null);
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
   /* ── Campaña ── */
@@ -104,7 +112,6 @@ export default function BeneficiaryCampaignPage() {
   );
 
   const isEditable = campaign.estado === 'ACTIVA' || campaign.estado === 'EN_VALIDACION';
-  const photoInputRef = useRef(null);
 
   return (
     <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
@@ -142,13 +149,22 @@ export default function BeneficiaryCampaignPage() {
             <h2 className="font-semibold text-gray-900">Kits asignados</h2>
           </div>
           {isEditable && (
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="btn-primary text-sm flex items-center gap-1"
-            >
-              <PlusCircleIcon className="w-4 h-4" />
-              Agregar kit
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowAIChat(true)}
+                className="btn-secondary text-sm flex items-center gap-1"
+              >
+                <SparklesIcon className="w-4 h-4" />
+                Crear kit
+              </button>
+              <button
+                onClick={() => setShowForm(!showForm)}
+                className="btn-primary text-sm flex items-center gap-1"
+              >
+                <PlusCircleIcon className="w-4 h-4" />
+                Agregar kit
+              </button>
+            </div>
           )}
         </div>
 
@@ -220,36 +236,50 @@ export default function BeneficiaryCampaignPage() {
           </p>
         ) : (
           <div className="space-y-2">
-            {campaign.kits.map((ck) => (
-              <div
-                key={ck.id}
-                className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl"
-              >
-                <div>
-                  <p className="font-medium text-gray-800 text-sm">{ck.kitNombre ?? `Kit #${ck.kitId}`}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    Necesarios: <span className="font-semibold">{ck.cantidadNecesaria}</span>
-                    {' · '}
-                    Recibidos: <span className="font-semibold text-green-600">{ck.cantidadFulfilled}</span>
-                    {' · '}
-                    Entregados: <span className="font-semibold text-primary-600">{ck.cantidadEntregada ?? 0}</span>
-                  </p>
+            {campaign.kits.map((ck) => {
+              const fulfilled = ck.cantidadFulfilled ?? 0;
+              const delivered = ck.cantidadEntregada ?? 0;
+              const needed = ck.cantidadNecesaria ?? 1;
+              const pct = Math.min(100, Math.round((fulfilled / needed) * 100));
+              const complete = pct >= 100;
+              return (
+                <div key={ck.id} className="py-3 px-4 bg-gray-50 rounded-xl">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-medium text-gray-800 text-sm">{ck.kitNombre ?? `Kit #${ck.kitId}`}</p>
+                    {isEditable && delivered === 0 && fulfilled === 0 && (
+                      <button
+                        onClick={() => {
+                          if (window.confirm(`¿Quitar el kit "${ck.kitNombre}" de la campaña?`))
+                            removeMutation.mutate(ck.kitId);
+                        }}
+                        disabled={removeMutation.isPending}
+                        className="p-1.5 text-danger-500 hover:bg-danger-50 rounded-lg transition-colors flex-shrink-0"
+                        title="Eliminar kit"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                  {/* Barra de progreso */}
+                  <div className="mt-2">
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <span>En proceso: <span className="font-semibold text-gray-700">{fulfilled}</span></span>
+                      <span>Necesarios: <span className="font-semibold text-gray-700">{needed}</span></span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all ${complete ? 'bg-green-500' : 'bg-primary-500'}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Entregados: <span className="font-semibold text-gray-600">{delivered}</span>
+                    </p>
+                    {complete && <p className="text-xs text-green-600 font-medium mt-1">¡Meta alcanzada!</p>}
+                  </div>
                 </div>
-                {isEditable && (
-                  <button
-                    onClick={() => {
-                      if (window.confirm(`¿Quitar el kit "${ck.kitNombre}" de la campaña?`))
-                        removeMutation.mutate(ck.id);
-                    }}
-                    disabled={removeMutation.isPending}
-                    className="p-2 text-danger-500 hover:bg-danger-50 rounded-lg transition-colors"
-                    title="Eliminar kit"
-                  >
-                    <TrashIcon className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -319,6 +349,33 @@ export default function BeneficiaryCampaignPage() {
         <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 text-sm text-yellow-700">
           Esta campaña está en estado <strong>{campaign.estado}</strong> — no se pueden modificar los kits.
         </div>
+      )}
+
+      {/* Chat IA para kit personalizado */}
+      {showAIChat && (
+        <AIChatModal
+          campaignId={id}
+          nombreAfectado={user?.nombre || user?.email || 'afectado'}
+          tituloCampana={campaign.titulo}
+          descripcionCampana={campaign.descripcion}
+          onClose={() => setShowAIChat(false)}
+          onConfirmed={() => {
+            queryClient.invalidateQueries(['campaign', id]);
+          }}
+          onUnavailable={() => { setShowAIChat(false); setShowManualKit(true); }}
+        />
+      )}
+
+      {/* Fallback: creación manual de kit personalizado si la IA no responde */}
+      {showManualKit && (
+        <ManualKitForm
+          campaignId={id}
+          existingKits={campaign.kits}
+          onClose={() => setShowManualKit(false)}
+          onConfirmed={() => {
+            queryClient.invalidateQueries(['campaign', id]);
+          }}
+        />
       )}
     </div>
   );

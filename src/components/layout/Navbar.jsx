@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
+import { ordersApi } from '../../api';
 import {
   HeartIcon,
   Bars3Icon,
@@ -54,6 +56,22 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+
+  // Donaciones pendientes de acción del donante (INGRESADA = sin comprobante subido)
+  const { data: pendingCount = 0 } = useQuery({
+    queryKey: ['donations-pending', user?.email],
+    queryFn: () => ordersApi.getDonationsByDonor(user.email),
+    select: (r) => (r.data ?? []).filter((d) => (d.estado ?? d.status) === 'INGRESADA').length,
+    enabled: isDonante && !!user?.email,
+    refetchOnWindowFocus: true,
+  });
+
+  const pendingBadge = (to) =>
+    to === '/donor/history' && pendingCount > 0 ? (
+      <span className="absolute -top-0.5 -right-0.5 min-w-4 h-4 px-1 bg-danger-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+        {pendingCount}
+      </span>
+    ) : null;
 
   const getLinks = () => {
     if (!isAuthenticated) return navLinks.public;
@@ -114,13 +132,14 @@ export default function Navbar() {
                 key={l.to}
                 to={l.to}
                 onClick={(e) => handleNavClick(e, l.to)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-150 ${
+                className={`relative px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-150 ${
                   location.pathname === l.to
                     ? 'bg-primary-50 text-primary-700'
                     : 'text-gray-600 hover:text-primary-700 hover:bg-gray-50'
                 }`}
               >
                 {l.label}
+                {pendingBadge(l.to)}
               </Link>
             ))}
           </div>
@@ -187,9 +206,14 @@ export default function Navbar() {
                 key={l.to}
                 to={l.to}
                 onClick={(e) => { handleNavClick(e, l.to); setOpen(false); }}
-                className="block px-4 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50"
+                className="relative flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50"
               >
                 {l.label}
+                {l.to === '/donor/history' && pendingCount > 0 && (
+                  <span className="min-w-4 h-4 px-1 bg-danger-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                    {pendingCount}
+                  </span>
+                )}
               </Link>
             ))}
             {isAuthenticated ? (

@@ -23,6 +23,8 @@ export default function AdminCampaignKitsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingKitId, setEditingKitId] = useState(null);
   const [editQty, setEditQty] = useState('');
+  const [editLog, setEditLog] = useState(false);
+  const [logVal, setLogVal] = useState('');
   const { register, handleSubmit, reset, formState: { errors } } = useForm();
 
   const { data: campaign, isLoading: loadingCampaign } = useQuery({
@@ -81,6 +83,16 @@ export default function AdminCampaignKitsPage() {
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 
+  const logisticaMutation = useMutation({
+    mutationFn: () => catalogApi.updateCampaignLogistica(id, Number(logVal) || 0),
+    onSuccess: () => {
+      toast.success('Costo de logística actualizado');
+      invalidate();
+      setEditLog(false);
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
   if (loadingCampaign) return <LoadingSpinner />;
   if (!campaign) return (
     <div className="max-w-3xl mx-auto px-4 py-10 text-center">
@@ -128,6 +140,44 @@ export default function AdminCampaignKitsPage() {
         <p className="text-sm text-gray-700 leading-relaxed">{campaign.descripcion}</p>
         {campaign.observaciones && (
           <p className="text-xs text-gray-400 mt-2">{campaign.observaciones}</p>
+        )}
+      </div>
+
+      {/* Costo de logística por kit */}
+      <div className="card mb-6 flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <p className="text-sm font-semibold text-gray-900">Costo de logística por kit</p>
+          <p className="text-xs text-gray-400">Se cobra al donante por cada kit donado a esta campaña.</p>
+        </div>
+        {editLog ? (
+          <div className="flex items-center gap-2">
+            <input
+              type="number"
+              min="0"
+              value={logVal}
+              onChange={(e) => setLogVal(e.target.value)}
+              className="input-field w-32"
+            />
+            <button onClick={() => logisticaMutation.mutate()} disabled={logisticaMutation.isPending} className="btn-primary text-sm">
+              {logisticaMutation.isPending ? 'Guardando...' : 'Guardar'}
+            </button>
+            <button onClick={() => setEditLog(false)} className="btn-secondary text-sm">Cancelar</button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-3">
+            <span className="text-lg font-bold text-primary-700">
+              ${(campaign.costoLogistica ?? 0).toLocaleString('es-CL')} CLP
+            </span>
+            {campaign.estado === 'ACTIVA' && (
+              <button
+                onClick={() => { setLogVal(String(campaign.costoLogistica ?? 0)); setEditLog(true); }}
+                className="p-1.5 text-gray-400 hover:text-primary-600"
+                title="Editar logística"
+              >
+                <PencilIcon className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         )}
       </div>
 
@@ -235,68 +285,82 @@ export default function AdminCampaignKitsPage() {
           </p>
         ) : (
           <div className="space-y-2">
-            {campaign.kits.map((ck) => (
-              <div
-                key={ck.id}
-                className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl gap-3"
-              >
-                <div className="min-w-0">
-                  <p className="font-medium text-gray-800 text-sm">{ck.kitNombre ?? `Kit #${ck.kitId}`}</p>
-                  <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1 flex-wrap">
-                    {editingKitId === ck.kitId ? (
-                      <span className="inline-flex items-center gap-1">
-                        Necesarios:
-                        <input
-                          type="number"
-                          min="1"
-                          value={editQty}
-                          onChange={(e) => setEditQty(e.target.value)}
-                          className="w-16 px-2 py-0.5 border border-gray-300 rounded text-xs"
-                        />
-                        <button
-                          onClick={() => saveEdit(ck)}
-                          disabled={updateMutation.isPending}
-                          className="p-1 text-green-600 hover:bg-green-50 rounded"
-                          title="Guardar"
-                        >
-                          <CheckIcon className="w-4 h-4" />
-                        </button>
-                      </span>
-                    ) : (
-                      <span>
-                        Necesarios: <span className="font-semibold">{ck.cantidadNecesaria}</span>
-                        {isEditable && (
+            {campaign.kits.map((ck) => {
+              const fulfilled = ck.cantidadFulfilled ?? 0;
+              const delivered = ck.cantidadEntregada ?? 0;
+              const needed = ck.cantidadNecesaria ?? 1;
+              const pct = Math.min(100, Math.round((fulfilled / needed) * 100));
+              const complete = pct >= 100;
+              return (
+                <div key={ck.id} className="py-3 px-4 bg-gray-50 rounded-xl">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="font-medium text-gray-800 text-sm min-w-0">{ck.kitNombre ?? `Kit #${ck.kitId}`}</p>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {editingKitId === ck.kitId ? (
+                        <span className="inline-flex items-center gap-1 text-xs text-gray-500">
+                          Necesarios:
+                          <input
+                            type="number"
+                            min="1"
+                            value={editQty}
+                            onChange={(e) => setEditQty(e.target.value)}
+                            className="w-16 px-2 py-0.5 border border-gray-300 rounded text-xs"
+                          />
+                          <button
+                            onClick={() => saveEdit(ck)}
+                            disabled={updateMutation.isPending}
+                            className="p-1 text-green-600 hover:bg-green-50 rounded"
+                            title="Guardar"
+                          >
+                            <CheckIcon className="w-4 h-4" />
+                          </button>
+                        </span>
+                      ) : (
+                        isEditable && (
                           <button
                             onClick={() => startEdit(ck)}
-                            className="ml-1 p-0.5 text-gray-400 hover:text-primary-600"
-                            title="Editar cantidad"
+                            className="p-1 text-gray-400 hover:text-primary-600 hover:bg-gray-200 rounded"
+                            title="Editar cantidad necesaria"
                           >
-                            <PencilIcon className="w-3 h-3 inline" />
+                            <PencilIcon className="w-3.5 h-3.5" />
                           </button>
-                        )}
-                      </span>
-                    )}
-                    {' · '}
-                    Recibidos: <span className="font-semibold text-green-600">{ck.cantidadFulfilled}</span>
-                    {' · '}
-                    Entregados: <span className="font-semibold text-primary-600">{ck.cantidadEntregada ?? 0}</span>
-                  </p>
+                        )
+                      )}
+                      {isEditable && (
+                        <button
+                          onClick={() => {
+                            if (window.confirm(`¿Quitar el kit "${ck.kitNombre}" de la campaña?`))
+                              removeMutation.mutate(ck.kitId);
+                          }}
+                          disabled={removeMutation.isPending}
+                          className="p-1.5 text-danger-500 hover:bg-danger-50 rounded-lg transition-colors"
+                          title="Eliminar kit"
+                        >
+                          <TrashIcon className="w-4 h-4" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {/* Barra de progreso */}
+                  <div className="mt-2">
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <span>En proceso: <span className="font-semibold text-gray-700">{fulfilled}</span></span>
+                      <span>Necesarios: <span className="font-semibold text-gray-700">{needed}</span></span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div
+                        className={`h-2 rounded-full transition-all ${complete ? 'bg-green-500' : 'bg-primary-500'}`}
+                        style={{ width: `${pct}%` }}
+                      />
+                    </div>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Entregados: <span className="font-semibold text-gray-600">{delivered}</span>
+                    </p>
+                    {complete && <p className="text-xs text-green-600 font-medium mt-1">¡Meta alcanzada!</p>}
+                  </div>
                 </div>
-                {isEditable && (
-                  <button
-                    onClick={() => {
-                      if (window.confirm(`¿Quitar el kit "${ck.kitNombre}" de la campaña?`))
-                        removeMutation.mutate(ck.kitId);
-                    }}
-                    disabled={removeMutation.isPending}
-                    className="p-2 text-danger-500 hover:bg-danger-50 rounded-lg transition-colors flex-shrink-0"
-                    title="Eliminar kit"
-                  >
-                    <TrashIcon className="w-4 h-4" />
-                  </button>
-                )}
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

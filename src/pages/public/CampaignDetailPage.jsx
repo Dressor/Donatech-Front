@@ -19,7 +19,7 @@ import {
 
 export default function CampaignDetailPage() {
   const { id } = useParams();
-  const { addItem, setCampaignId } = useCart();
+  const { addItem, setCampaignId, setCampaignLogistica } = useCart();
   const { isAuthenticated, isDonante } = useAuth();
   const navigate = useNavigate();
   const [selectedKit, setSelectedKit] = useState(null);
@@ -53,6 +53,7 @@ export default function CampaignDetailPage() {
       return;
     }
     setCampaignId(campaign.id);
+    setCampaignLogistica(campaign.costoLogistica ?? 0);
     addItem({ id: ck.kitId, nombre: ck.kitNombre, precioEstimado: ck.kitPrecioEstimado });
     toast.success(`${ck.kitNombre} agregado al carrito`);
   };
@@ -160,6 +161,11 @@ export default function CampaignDetailPage() {
                       {ck.kitPrecioEstimado > 0 && (
                         <p className="text-sm text-primary-600 font-medium">
                           ${ck.kitPrecioEstimado.toLocaleString('es-CL')} CLP
+                        </p>
+                      )}
+                      {campaign.costoLogistica > 0 && (
+                        <p className="text-xs text-gray-400">
+                          + ${campaign.costoLogistica.toLocaleString('es-CL')} logística por kit
                         </p>
                       )}
                     </div>

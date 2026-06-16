@@ -4,7 +4,7 @@ import StatusBadge from '../ui/StatusBadge';
 
 export default function CampaignCard({ campaign }) {
   return (
-    <div className="card-hover flex flex-col h-full">
+    <Link to={`/campaigns/${campaign.id}`} className="card-hover flex flex-col h-full no-underline">
       {/* Header gradient */}
       <div className="h-28 rounded-xl bg-gradient-warm flex items-center justify-center mb-4 relative overflow-hidden">
         <HeartIcon className="w-12 h-12 text-white/30 absolute -right-3 -top-3 rotate-12" />
@@ -39,13 +39,10 @@ export default function CampaignCard({ campaign }) {
           </div>
         )}
 
-        <Link
-          to={`/campaigns/${campaign.id}`}
-          className="btn-primary text-sm text-center mt-auto"
-        >
+        <span className="btn-primary text-sm text-center mt-auto">
           Ver campaña & donar
-        </Link>
+        </span>
       </div>
-    </div>
+    </Link>
   );
 }

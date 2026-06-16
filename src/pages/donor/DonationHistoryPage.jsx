@@ -15,7 +15,16 @@ export default function DonationHistoryPage() {
   const { data: donations = [], isLoading, isError } = useQuery({
     queryKey: ['donations', user?.email],
     queryFn: () => ordersApi.getDonationsByDonor(user.email),
-    select: (r) => r.data ?? [],
+    // Pendientes (INGRESADA, sin comprobante) primero; luego por fecha desc.
+    select: (r) => {
+      const list = r.data ?? [];
+      const fecha = (d) => new Date(d.orderDate ?? d.createdAt ?? 0).getTime();
+      const esPendiente = (d) => (d.estado ?? d.status) === 'INGRESADA';
+      return [...list].sort((a, b) => {
+        if (esPendiente(a) !== esPendiente(b)) return esPendiente(a) ? -1 : 1;
+        return fecha(b) - fecha(a);
+      });
+    },
     enabled: !!user?.email,
   });
 
@@ -67,6 +76,11 @@ export default function DonationHistoryPage() {
                     ${(d.finalPrice ?? d.total ?? 0).toLocaleString('es-CL')} CLP
                   </span>
                 </div>
+                {(d.estado ?? d.status) === 'INGRESADA' && (
+                  <p className="text-xs text-amber-600 font-medium mt-1.5">
+                    Pendiente: sube tu comprobante para continuar
+                  </p>
+                )}
               </div>
             </Link>
           ))}

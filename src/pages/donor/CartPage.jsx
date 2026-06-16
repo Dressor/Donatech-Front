@@ -5,7 +5,7 @@ import { ShoppingCartIcon, TrashIcon, MinusIcon, PlusIcon } from '@heroicons/rea
 import { Link } from 'react-router-dom';
 
 export default function CartPage() {
-  const { items, removeItem, updateQuantity, total, clear, coupon, setCoupon } = useCart();
+  const { items, removeItem, updateQuantity, subtotal, logisticaTotal, campaignLogistica, unidades, total, clear, coupon, setCoupon } = useCart();
   const navigate = useNavigate();
 
   if (items.length === 0) {
@@ -99,8 +99,18 @@ export default function CartPage() {
               className="input-field"
             />
           </div>
-          <div className="border-t border-gray-100 pt-3 mb-5">
-            <div className="flex justify-between font-semibold text-gray-900">
+          <div className="border-t border-gray-100 pt-3 mb-5 space-y-1.5">
+            <div className="flex justify-between text-sm text-gray-600">
+              <span>Productos</span>
+              <span>${subtotal.toLocaleString('es-CL')}</span>
+            </div>
+            {campaignLogistica > 0 && (
+              <div className="flex justify-between text-sm text-gray-600">
+                <span>Logística ({unidades} {unidades === 1 ? 'kit' : 'kits'} × ${campaignLogistica.toLocaleString('es-CL')})</span>
+                <span>${logisticaTotal.toLocaleString('es-CL')}</span>
+              </div>
+            )}
+            <div className="flex justify-between font-semibold text-gray-900 pt-1.5 border-t border-gray-100">
               <span>Total estimado</span>
               <span className="text-primary-700">${total.toLocaleString('es-CL')} CLP</span>
             </div>
