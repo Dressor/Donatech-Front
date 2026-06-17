@@ -7,11 +7,16 @@ import EmptyState from '../../components/ui/EmptyState';
 import TransferDetailModal from '../../components/ui/TransferDetailModal';
 import { ShieldCheckIcon, FunnelIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 
+// Soporte = tickets creados por personas. Las validaciones automáticas (campaña/transferencia)
+// viven en la pestaña "Validaciones".
+const VALIDATION_TYPES = ['VALIDACION_CAMPAÑA', 'VALIDACION_TRANSFERENCIA'];
 const TICKET_TYPES = [
   { value: '', label: 'Todos' },
-  { value: 'VALIDACION_TRANSFERENCIA', label: 'Transferencias' },
-  { value: 'VALIDACION_CAMPAÑA', label: 'Campañas' },
   { value: 'INCIDENCIA_ENTREGA', label: 'Incidencias de Entrega' },
+  { value: 'DONACION', label: 'Donación' },
+  { value: 'PRODUCTO', label: 'Producto' },
+  { value: 'USUARIO', label: 'Usuario' },
+  { value: 'TECNICO', label: 'Técnico' },
   { value: 'OTRO', label: 'Otro' },
 ];
 
@@ -22,14 +27,13 @@ export default function BackofficePage() {
   const queryClient = useQueryClient();
 
   const { data: tickets = [], isLoading } = useQuery({
-    queryKey: ['tickets', typeFilter, statusFilter],
-    queryFn: () =>
-      typeFilter
-        ? supportsApi.getByType(typeFilter)
-        : statusFilter
-        ? supportsApi.getByStatus(statusFilter)
-        : supportsApi.getAll(),
-    select: (r) => r.data ?? [],
+    queryKey: ['tickets', 'soporte', typeFilter, statusFilter],
+    queryFn: () => (typeFilter ? supportsApi.getByType(typeFilter) : supportsApi.getAll()),
+    // Excluir validaciones automáticas y aplicar el filtro de estado en cliente.
+    select: (r) =>
+      (r.data ?? [])
+        .filter((t) => !VALIDATION_TYPES.includes(t.tipo))
+        .filter((t) => !statusFilter || t.estado === statusFilter),
   });
 
   const handleSuccess = () => {
@@ -40,8 +44,8 @@ export default function BackofficePage() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
       <div className="mb-8">
-        <h1 className="section-title mb-1">Backoffice de Validación</h1>
-        <p className="text-gray-500">Revisa y aprueba transferencias y campañas</p>
+        <h1 className="section-title mb-1">Soporte</h1>
+        <p className="text-gray-500">Tickets de soporte creados por usuarios</p>
       </div>
 
       {/* Filters */}

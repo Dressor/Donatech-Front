@@ -18,12 +18,22 @@ export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
 
   const isValidation = ['VALIDACION_TRANSFERENCIA', 'VALIDACION_CAMPAÑA'].includes(ticket.tipo);
   const isCampaignValidation = ticket.tipo === 'VALIDACION_CAMPAÑA';
+  const isTransfer = ticket.tipo === 'VALIDACION_TRANSFERENCIA';
 
+  // Validación de transferencia: el ticket referencia una DONACIÓN (pago que agrupa N órdenes).
+  const { data: donation, isLoading: loadingDonation } = useQuery({
+    queryKey: ['donation', ticket.donationId],
+    queryFn: () => ordersApi.getDonation(ticket.donationId),
+    select: (r) => r.data,
+    enabled: isTransfer && !!ticket.donationId,
+  });
+
+  // Para tickets que no son de transferencia (campaña), se puede cargar la orden vinculada.
   const { data: order, isLoading: loadingOrder } = useQuery({
     queryKey: ['order', ticket.donationId],
     queryFn: () => ordersApi.getDonationById(ticket.donationId),
     select: (r) => r.data,
-    enabled: !!ticket.donationId,
+    enabled: !!ticket.donationId && !isTransfer,
   });
 
   const { data: donor } = useQuery({
@@ -48,16 +58,25 @@ export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
 
   const { data: beneficiary } = useQuery({
     queryKey: ['beneficiary-by-user', ownerUserId],
-    queryFn: () => usersApi.getBeneficiaryByUserId(ownerUserId),
-    select: (r) => r.data,
+    // Swallow 404: campañas de ORGANIZACION o perfiles incompletos no tienen entidad
+    // Beneficiary. Devolver null evita el toast de error global (QueryCache.onError).
+    queryFn: async () => {
+      try {
+        const r = await usersApi.getBeneficiaryByUserId(ownerUserId);
+        return r.data;
+      } catch (e) {
+        if (e?.response?.status === 404) return null;
+        throw e;
+      }
+    },
     enabled: !!ownerUserId,
-    retry: false,   // campañas de ORGANIZACION pueden no tener entidad Beneficiary (404)
+    retry: false,
   });
 
   const { blobUrl: proofUrl, isLoading: loadingProof } = useAuthImage(
-    ['transfer-proof', ticket.donationId],
-    () => ordersApi.getTransferProof(ticket.donationId),
-    { enabled: !!ticket.donationId && ticket.tipo === 'VALIDACION_TRANSFERENCIA' }
+    ['donation-proof', ticket.donationId],
+    () => ordersApi.getDonationProof(ticket.donationId),
+    { enabled: !!ticket.donationId && isTransfer }
   );
 
   const approveMutation = useMutation({
@@ -112,8 +131,55 @@ export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
         </div>
 
         <div className="p-5 space-y-5">
-          {/* Donación */}
-          {ticket.donationId && (
+          {/* Donación (transferencia): resumen del pago con sus órdenes por campaña */}
+          {isTransfer && (
+            <section>
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                Donación #{ticket.donationId}
+              </h3>
+              {loadingDonation ? (
+                <LoadingSpinner />
+              ) : donation ? (
+                <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                  <div className="flex items-start gap-2">
+                    <UserIcon className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-xs text-gray-400">Donante</p>
+                      <p className="text-sm font-medium text-gray-900">{donation.donorName || donation.userEmail}</p>
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400">Monto total</p>
+                    <p className="font-bold text-primary-700 text-base">${(donation.total ?? 0).toLocaleString('es-CL')} CLP</p>
+                  </div>
+                  <div className="space-y-2">
+                    <p className="text-xs text-gray-400">Campañas / kits</p>
+                    {(donation.orders ?? []).map((o) => (
+                      <div key={o.id} className="border border-gray-100 rounded-lg p-2 bg-white">
+                        <p className="text-sm font-medium text-gray-800">
+                          {o.campaignTitulo || (o.campaignId ? `Campaña #${o.campaignId}` : 'Campaña')}
+                          {o.beneficiaryName ? <span className="text-xs font-normal text-gray-400"> · {o.beneficiaryName}</span> : null}
+                        </p>
+                        {(o.items ?? []).map((it, i) => (
+                          <div key={i} className="flex justify-between text-xs text-gray-600">
+                            <span>{it.kitNombre || it.kitName || `Kit #${it.kitId}`}{it.quantity > 1 ? ` × ${it.quantity}` : ''}</span>
+                          </div>
+                        ))}
+                        <div className="flex justify-between text-xs font-medium text-gray-700 mt-1">
+                          <span>Subtotal</span><span>${(o.finalPrice ?? 0).toLocaleString('es-CL')}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-gray-400 italic">No se pudo cargar la donación.</p>
+              )}
+            </section>
+          )}
+
+          {/* Donación (campaña u otros): orden vinculada */}
+          {!isTransfer && ticket.donationId && (
             <section>
               <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">
                 Donación #{ticket.donationId}
@@ -187,7 +253,8 @@ export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
             </section>
           )}
 
-          {/* Beneficiario */}
+          {/* Beneficiario (no aplica para transferencia multi-campaña) */}
+          {!isTransfer && (
           <section>
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-3">Beneficiario</h3>
             {ownerUserId ? (
@@ -212,6 +279,7 @@ export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
               <p className="text-sm text-gray-400 italic">Sin beneficiario asignado.</p>
             )}
           </section>
+          )}
 
           {/* Comprobante de transferencia */}
           {ticket.tipo === 'VALIDACION_TRANSFERENCIA' && (

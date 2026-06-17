@@ -45,6 +45,7 @@ function CreateUserModal({ onClose, onCreated }) {
     mutationFn: (form) => {
       const base = {
         name: form.name,
+        apellido: form.apellido,
         email: form.email,
         password: form.password,
         phone: form.phone || undefined,
@@ -105,18 +106,33 @@ function CreateUserModal({ onClose, onCreated }) {
             {errors.roleId && <p className="text-xs text-danger-600 mt-1">{errors.roleId.message}</p>}
           </div>
 
-          <div>
-            <label className="label">Nombre</label>
-            <input
-              {...register('name', {
-                required: 'Nombre obligatorio',
-                minLength: { value: 4, message: 'Mínimo 4 caracteres' },
-                pattern: { value: /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ ]+$/, message: 'Solo letras y espacios' },
-              })}
-              className="input-field"
-              placeholder="Nombre completo"
-            />
-            {errors.name && <p className="text-xs text-danger-600 mt-1">{errors.name.message}</p>}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Nombre</label>
+              <input
+                {...register('name', {
+                  required: 'Nombre obligatorio',
+                  minLength: { value: 2, message: 'Mínimo 2 caracteres' },
+                  pattern: { value: /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+$/, message: 'Solo letras, sin espacios' },
+                })}
+                className="input-field"
+                placeholder="Juan"
+              />
+              {errors.name && <p className="text-xs text-danger-600 mt-1">{errors.name.message}</p>}
+            </div>
+            <div>
+              <label className="label">Apellido</label>
+              <input
+                {...register('apellido', {
+                  required: 'Apellido obligatorio',
+                  minLength: { value: 2, message: 'Mínimo 2 caracteres' },
+                  pattern: { value: /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+$/, message: 'Solo letras, sin espacios' },
+                })}
+                className="input-field"
+                placeholder="Pérez"
+              />
+              {errors.apellido && <p className="text-xs text-danger-600 mt-1">{errors.apellido.message}</p>}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -227,9 +243,128 @@ function CreateUserModal({ onClose, onCreated }) {
   );
 }
 
+function EditUserModal({ user, onClose, onSaved }) {
+  const [editEmail, setEditEmail] = useState(false);
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    defaultValues: {
+      name: user.name ?? '',
+      apellido: user.apellido ?? '',
+      email: user.email ?? '',
+      roleId: user.role?.id ?? '',
+      status: user.status ?? 1,
+    },
+  });
+
+  const { data: roles = [] } = useQuery({
+    queryKey: ['roles'],
+    queryFn: () => usersApi.getRoles(),
+    select: (r) => r.data ?? [],
+  });
+
+  const mutation = useMutation({
+    mutationFn: (form) => usersApi.updateUser(user.id, {
+      name: form.name,
+      apellido: form.apellido,
+      email: form.email,
+      roleId: Number(form.roleId),
+      status: Number(form.status),
+    }),
+    onSuccess: () => { toast.success('Usuario actualizado'); onSaved(); onClose(); },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto p-6" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-5">
+          <h2 className="text-lg font-bold text-gray-900">Editar usuario</h2>
+          <button onClick={onClose} className="p-1 text-gray-400 hover:text-gray-600">
+            <XMarkIcon className="w-5 h-5" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit((d) => mutation.mutate(d))} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Nombre</label>
+              <input
+                {...register('name', {
+                  required: 'Nombre obligatorio',
+                  minLength: { value: 2, message: 'Mínimo 2 caracteres' },
+                  pattern: { value: /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+$/, message: 'Solo letras, sin espacios' },
+                })}
+                className="input-field"
+              />
+              {errors.name && <p className="text-xs text-danger-600 mt-1">{errors.name.message}</p>}
+            </div>
+            <div>
+              <label className="label">Apellido</label>
+              <input
+                {...register('apellido', {
+                  required: 'Apellido obligatorio',
+                  minLength: { value: 2, message: 'Mínimo 2 caracteres' },
+                  pattern: { value: /^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ]+$/, message: 'Solo letras, sin espacios' },
+                })}
+                className="input-field"
+              />
+              {errors.apellido && <p className="text-xs text-danger-600 mt-1">{errors.apellido.message}</p>}
+            </div>
+          </div>
+
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="label mb-0">Correo</label>
+              <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer">
+                <input type="checkbox" checked={editEmail} onChange={(e) => setEditEmail(e.target.checked)} className="h-3.5 w-3.5 accent-primary-600" />
+                Habilitar edición de correo
+              </label>
+            </div>
+            <input
+              {...register('email', {
+                required: 'Correo obligatorio',
+                pattern: { value: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Correo inválido' },
+              })}
+              readOnly={!editEmail}
+              className={`input-field mt-1.5 ${!editEmail ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+            />
+            {errors.email && <p className="text-xs text-danger-600 mt-1">{errors.email.message}</p>}
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="label">Rol</label>
+              <select {...register('roleId', { required: 'Rol obligatorio' })} className="input-field">
+                {roles.map((r) => (
+                  <option key={r.id} value={r.id}>{r.name?.replace('ROLE_', '')}</option>
+                ))}
+              </select>
+              {errors.roleId && <p className="text-xs text-danger-600 mt-1">{errors.roleId.message}</p>}
+            </div>
+            <div>
+              <label className="label">Estado</label>
+              <select {...register('status')} className="input-field">
+                <option value={1}>Activo</option>
+                <option value={0}>Inactivo</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex gap-2 justify-end pt-2">
+            <button type="button" onClick={onClose} className="btn-secondary text-sm">Cancelar</button>
+            <button type="submit" disabled={mutation.isPending} className="btn-primary text-sm">
+              {mutation.isPending ? 'Guardando...' : 'Guardar cambios'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminUsersPage() {
   const [search, setSearch] = useState('');
   const [showCreate, setShowCreate] = useState(false);
+  const [editUser, setEditUser] = useState(null);
   const queryClient = useQueryClient();
 
   const { data: users = [], isLoading } = useQuery({
@@ -295,7 +430,7 @@ export default function AdminUsersPage() {
               <tbody>
                 {filtered.map((u) => (
                   <tr key={u.id} className="border-b border-gray-50 hover:bg-gray-50/50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{u.name ?? '—'}</td>
+                    <td className="px-4 py-3 font-medium text-gray-900">{[u.name, u.apellido].filter(Boolean).join(' ') || '—'}</td>
                     <td className="px-4 py-3 text-gray-600">{u.email}</td>
                     <td className="px-4 py-3">
                       <span className="badge-info">{u.role?.name ?? '—'}</span>
@@ -306,20 +441,28 @@ export default function AdminUsersPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <button
-                        onClick={() => {
-                          const accion = u.status === 1 ? 'desactivar' : 'activar';
-                          if (window.confirm(`¿${accion.charAt(0).toUpperCase() + accion.slice(1)} al usuario ${u.email}?`))
-                            statusMutation.mutate({ id: u.id, status: u.status === 1 ? 0 : 1 });
-                        }}
-                        className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
-                          u.status === 1
-                            ? 'bg-red-50 text-danger-600 hover:bg-red-100'
-                            : 'bg-green-50 text-green-700 hover:bg-green-100'
-                        }`}
-                      >
-                        {u.status === 1 ? 'Desactivar' : 'Activar'}
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => setEditUser(u)}
+                          className="text-xs px-2.5 py-1 rounded-lg font-medium bg-primary-50 text-primary-700 hover:bg-primary-100 transition-colors"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => {
+                            const accion = u.status === 1 ? 'desactivar' : 'activar';
+                            if (window.confirm(`¿${accion.charAt(0).toUpperCase() + accion.slice(1)} al usuario ${u.email}?`))
+                              statusMutation.mutate({ id: u.id, status: u.status === 1 ? 0 : 1 });
+                          }}
+                          className={`text-xs px-2.5 py-1 rounded-lg font-medium transition-colors ${
+                            u.status === 1
+                              ? 'bg-red-50 text-danger-600 hover:bg-red-100'
+                              : 'bg-green-50 text-green-700 hover:bg-green-100'
+                          }`}
+                        >
+                          {u.status === 1 ? 'Desactivar' : 'Activar'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -333,6 +476,14 @@ export default function AdminUsersPage() {
         <CreateUserModal
           onClose={() => setShowCreate(false)}
           onCreated={() => queryClient.invalidateQueries(['admin-users'])}
+        />
+      )}
+
+      {editUser && (
+        <EditUserModal
+          user={editUser}
+          onClose={() => setEditUser(null)}
+          onSaved={() => queryClient.invalidateQueries(['admin-users'])}
         />
       )}
     </div>

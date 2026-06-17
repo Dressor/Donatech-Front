@@ -10,6 +10,8 @@ import {
   ExclamationTriangleIcon,
   ArrowTrendingUpIcon,
   UserGroupIcon,
+  TruckIcon,
+  ClipboardDocumentCheckIcon,
 } from '@heroicons/react/24/outline';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -44,10 +46,36 @@ export default function AdminDashboard() {
     select: (r) => r.data ?? [],
   });
 
+  const byStatus = summary?.donationsByStatus ?? {};
+  const ordenesEnProceso =
+    (byStatus.EN_PREPARACION ?? 0) + (byStatus.ASIGNADA_ENVIO ?? 0) + (byStatus.EN_CAMINO ?? 0);
+  // Validaciones automáticas (campaña/transferencia) vs soporte humano.
+  const VALIDATION_TYPES = ['VALIDACION_TRANSFERENCIA', 'VALIDACION_CAMPAÑA'];
+  const validationTickets = pendingTickets.filter((t) => VALIDATION_TYPES.includes(t.tipo));
+  const supportTickets = pendingTickets.filter((t) => !VALIDATION_TYPES.includes(t.tipo));
+  // Pendientes de validación = cuentas + campañas + transferencias + entregas por confirmar.
+  const pendientesValidacion =
+    validationTickets.length + pendingBeneficiaries.length + pendingCompanies.length +
+    (byStatus.PENDIENTE_CONFIRMACION ?? 0);
+
   const stats = [
     {
+      label: 'Órdenes en proceso',
+      value: ordenesEnProceso,
+      icon: TruckIcon,
+      color: 'text-blue-600 bg-blue-50',
+      link: '/admin/deliveries',
+    },
+    {
+      label: 'Pendientes de validación',
+      value: pendientesValidacion,
+      icon: ClipboardDocumentCheckIcon,
+      color: 'text-purple-600 bg-purple-50',
+      link: '/admin/beneficiaries',
+    },
+    {
       label: 'Tickets abiertos',
-      value: pendingTickets.length,
+      value: supportTickets.length,
       icon: ExclamationTriangleIcon,
       color: 'text-orange-600 bg-orange-50',
       link: '/admin/backoffice',
@@ -75,9 +103,7 @@ export default function AdminDashboard() {
     },
   ];
 
-  const chartData = summary?.totalByStatus
-    ? Object.entries(summary.totalByStatus).map(([status, count]) => ({ status, count }))
-    : [];
+  const chartData = Object.entries(byStatus).map(([status, count]) => ({ status, count }));
 
   if (isLoading) return <LoadingSpinner text="Cargando dashboard..." />;
 
@@ -124,7 +150,7 @@ export default function AdminDashboard() {
           <div className="space-y-2">
             {[
               { label: 'Validar cuentas pendientes (beneficiarios y empresas)', to: '/admin/beneficiaries', icon: UserGroupIcon },
-              { label: 'Validar transferencias pendientes', to: '/admin/backoffice', icon: ShieldCheckIcon },
+              { label: 'Validar transferencias pendientes', to: '/admin/beneficiaries', icon: ShieldCheckIcon },
               { label: 'Gestionar catálogo de kits', to: '/admin/catalog', icon: CubeIcon },
               { label: 'Gestionar usuarios', to: '/admin/users', icon: UsersIcon },
             ].map((a) => (

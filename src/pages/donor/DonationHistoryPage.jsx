@@ -18,8 +18,8 @@ export default function DonationHistoryPage() {
     // Pendientes (INGRESADA, sin comprobante) primero; luego por fecha desc.
     select: (r) => {
       const list = r.data ?? [];
-      const fecha = (d) => new Date(d.orderDate ?? d.createdAt ?? 0).getTime();
-      const esPendiente = (d) => (d.estado ?? d.status) === 'INGRESADA';
+      const fecha = (d) => new Date(d.fechaCreacion ?? d.orderDate ?? 0).getTime();
+      const esPendiente = (d) => (d.estadoPago ?? d.estado) === 'INGRESADA';
       return [...list].sort((a, b) => {
         if (esPendiente(a) !== esPendiente(b)) return esPendiente(a) ? -1 : 1;
         return fecha(b) - fecha(a);
@@ -50,40 +50,46 @@ export default function DonationHistoryPage() {
         />
       ) : (
         <div className="space-y-4">
-          {donations.map((d) => (
-            <Link key={d.id} to={`/donation/${d.id}`} className="card-hover flex items-start gap-4 no-underline">
-              <div className="w-12 h-12 rounded-xl bg-gradient-blue flex-shrink-0 flex items-center justify-center">
-                <HeartIcon className="w-6 h-6 text-white" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-3 flex-wrap">
-                  <div>
-                    <p className="font-semibold text-gray-900">Donación #{d.id}</p>
-                    <p className="text-sm text-gray-500">
-                      Campaña ID: {d.campaignId ?? '—'}
-                    </p>
+          {donations.map((d) => {
+            const nOrders = d.orders?.length ?? 0;
+            return (
+              <Link key={d.id} to={`/donation/${d.id}`} className="card-hover flex items-start gap-4 no-underline">
+                <div className="w-12 h-12 rounded-xl bg-gradient-blue flex-shrink-0 flex items-center justify-center">
+                  <HeartIcon className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-3 flex-wrap">
+                    <div>
+                      <p className="font-semibold text-gray-900">
+                        Donación #{d.id}
+                        {d.activa && <span className="ml-2 text-[10px] uppercase tracking-wide bg-green-100 text-green-700 px-1.5 py-0.5 rounded-full">Activa</span>}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {nOrders} {nOrders === 1 ? 'campaña' : 'campañas'}
+                      </p>
+                    </div>
+                    <StatusBadge status={d.estadoPago ?? d.estado} />
                   </div>
-                  <StatusBadge status={d.status ?? d.estado} />
+                  <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
+                    <span className="flex items-center gap-1">
+                      <ClockIcon className="w-3.5 h-3.5" />
+                      {d.fechaCreacion
+                        ? format(new Date(d.fechaCreacion), "d MMM yyyy, HH:mm", { locale: es })
+                        : 'Fecha desconocida'}
+                    </span>
+                    <span className="font-medium text-primary-600">
+                      ${(d.total ?? 0).toLocaleString('es-CL')} CLP
+                    </span>
+                  </div>
+                  {(d.estadoPago ?? d.estado) === 'INGRESADA' && (
+                    <p className="text-xs text-amber-600 font-medium mt-1.5">
+                      Pendiente: sube tu comprobante para continuar
+                    </p>
+                  )}
                 </div>
-                <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
-                  <span className="flex items-center gap-1">
-                    <ClockIcon className="w-3.5 h-3.5" />
-                    {d.orderDate || d.createdAt
-                      ? format(new Date(d.orderDate ?? d.createdAt), "d MMM yyyy, HH:mm", { locale: es })
-                      : 'Fecha desconocida'}
-                  </span>
-                  <span className="font-medium text-primary-600">
-                    ${(d.finalPrice ?? d.total ?? 0).toLocaleString('es-CL')} CLP
-                  </span>
-                </div>
-                {(d.estado ?? d.status) === 'INGRESADA' && (
-                  <p className="text-xs text-amber-600 font-medium mt-1.5">
-                    Pendiente: sube tu comprobante para continuar
-                  </p>
-                )}
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       )}
     </div>

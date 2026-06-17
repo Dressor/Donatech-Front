@@ -46,16 +46,14 @@ export default function Footer() {
               Legal
             </h4>
             <ul className="space-y-2 text-sm">
-              {[
-                'Términos y condiciones',
-                'Política de privacidad',
-                'Ley 19.628',
-                'Ley 16.282',
-              ].map((l) => (
-                <li key={l}>
-                  <span className="hover:text-white transition-colors cursor-pointer">{l}</span>
-                </li>
-              ))}
+              <li>
+                <Link to="/terms" className="hover:text-white transition-colors">Términos y condiciones</Link>
+              </li>
+              <li>
+                <Link to="/privacy" className="hover:text-white transition-colors">Política de privacidad</Link>
+              </li>
+              <li><span className="text-gray-400">Ley 19.628</span></li>
+              <li><span className="text-gray-400">Ley 16.282</span></li>
             </ul>
           </div>
         </div>

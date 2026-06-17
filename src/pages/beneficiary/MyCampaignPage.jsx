@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import { catalogApi, ordersApi } from '../../api';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import StatusBadge from '../../components/ui/StatusBadge';
+import CampaignKitCard from '../../components/shared/CampaignKitCard';
 import CreateCampaignPage from './CreateCampaignPage';
 import {
   MegaphoneIcon,
@@ -37,7 +38,8 @@ export default function MyCampaignPage() {
   const { data: donations = [], isLoading: loadingDonations } = useQuery({
     queryKey: ['beneficiary-donations', campaign?.id],
     queryFn: () => ordersApi.getDonationsByCampaign(campaign.id, true),
-    select: (r) => r.data ?? [],
+    // Más recientes primero.
+    select: (r) => [...(r.data ?? [])].sort((a, b) => new Date(b.orderDate ?? 0) - new Date(a.orderDate ?? 0)),
     enabled: !!campaign?.id,
   });
 
@@ -108,18 +110,9 @@ export default function MyCampaignPage() {
           <h2 className="font-semibold text-gray-900">Kits de la campaña</h2>
         </div>
         {campaign.kits?.length > 0 ? (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {campaign.kits.map((ck) => (
-              <div key={ck.id} className="py-3 px-4 bg-gray-50 rounded-xl">
-                <p className="font-medium text-gray-800 text-sm">{ck.kitNombre ?? `Kit #${ck.kitId}`}</p>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Necesarios: <span className="font-semibold">{ck.cantidadNecesaria}</span>
-                  {' · '}
-                  Recibidos: <span className="font-semibold text-green-600">{ck.cantidadFulfilled}</span>
-                  {' · '}
-                  Entregados: <span className="font-semibold text-primary-600">{ck.cantidadEntregada ?? 0}</span>
-                </p>
-              </div>
+              <CampaignKitCard key={ck.id} kit={ck} campaignLogistica={campaign.costoLogistica} />
             ))}
           </div>
         ) : (
@@ -144,7 +137,7 @@ export default function MyCampaignPage() {
             {donations.map((d) => (
               <button
                 key={d.id}
-                onClick={() => navigate(`/donation/${d.id}`)}
+                onClick={() => navigate(`/order/${d.id}`)}
                 className="w-full flex items-center justify-between py-3 px-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors text-left"
               >
                 <div>

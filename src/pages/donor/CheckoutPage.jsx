@@ -14,16 +14,18 @@ import {
 } from '@heroicons/react/24/outline';
 
 export default function CheckoutPage() {
-  const { items, subtotal, logisticaTotal, campaignLogistica, unidades, total, campaignId, coupon, clear } = useCart();
+  const { items, groups, subtotal, logisticaTotal, total, coupon, clear } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
-  const [orderId, setOrderId] = useState(null);
+  // Una donación (pago) que agrupa una orden por campaña.
+  const [donationId, setDonationId] = useState(null);
   // Snapshot de la orden para mostrar en el paso 2 (el carrito se vacía al confirmar)
-  const [snapshot, setSnapshot] = useState({ items: [], total: 0 });
+  const [snapshot, setSnapshot] = useState({ total: 0 });
   const fileRef = useRef();
+  const multiCampaign = groups.length > 1;
 
   const { data: transferConfig } = useQuery({
     queryKey: ['transfer-config'],
@@ -38,22 +40,27 @@ export default function CheckoutPage() {
     return null;
   }
 
-  // Paso 1: crear la orden al CONFIRMAR y vaciar el carrito de inmediato.
+  // Paso 1: crear UNA donación (una orden por campaña) y vaciar el carrito de inmediato.
   const handleConfirm = async () => {
     setLoading(true);
     try {
-      const payload = {
+      const { data } = await ordersApi.createDonation({
         userEmail: user.email,
-        campaignId: campaignId || undefined,
-        items: items.map((i) => ({ kitId: i.kitId, quantity: i.cantidad })),
         couponCode: coupon || undefined,
-      };
-      const { data } = await ordersApi.createDonation(payload);
-      setOrderId(data.id);
-      setSnapshot({ items, total }); // congelar para el paso 2
-      clear(); // vaciar carrito ya: evita duplicar la orden
+        groups: groups.map((g) => ({
+          campaignId: g.campaignId,
+          items: g.items.map((i) => ({ kitId: i.kitId, quantity: i.cantidad })),
+        })),
+      });
+      setDonationId(data.id);
+      setSnapshot({ total }); // congelar para el paso 2
+      clear(); // vaciar carrito ya: evita duplicar la donación
       setStep(2);
-      toast.success('¡Orden confirmada! Ahora sube tu comprobante de pago.');
+      toast.success(
+        multiCampaign
+          ? `¡Donación creada con ${groups.length} órdenes! Ahora sube tu comprobante de pago.`
+          : '¡Donación creada! Ahora sube tu comprobante de pago.'
+      );
     } catch (err) {
       toast.error(getErrorMessage(err));
     } finally {
@@ -61,7 +68,7 @@ export default function CheckoutPage() {
     }
   };
 
-  // Paso 2: subir comprobante → EN_VALIDACION_TRANSFERENCIA
+  // Paso 2: subir un comprobante a la donación (cubre todas sus órdenes) → EN_VALIDACION_TRANSFERENCIA
   const handleUploadProof = async () => {
     if (!file) {
       toast.error('Debes adjuntar el comprobante de transferencia');
@@ -69,7 +76,7 @@ export default function CheckoutPage() {
     }
     setLoading(true);
     try {
-      await ordersApi.uploadTransferProof(orderId, file);
+      await ordersApi.uploadDonationProof(donationId, file);
       setStep(3);
       toast.success('¡Comprobante enviado! Tu donación está siendo validada.');
     } catch (err) {
@@ -105,11 +112,24 @@ export default function CheckoutPage() {
 
           <div className="card">
             <h3 className="font-semibold text-gray-800 mb-3">Kits seleccionados</h3>
-            <div className="space-y-2">
-              {items.map((item) => (
-                <div key={item.kitId} className="flex justify-between text-sm">
-                  <span className="text-gray-700">{item.kit.nombre} × {item.cantidad}</span>
-                  <span className="font-medium">${((item.kit.precioEstimado ?? item.kit.precioBase ?? 0) * item.cantidad).toLocaleString('es-CL')}</span>
+            <div className="space-y-3">
+              {groups.map((g) => (
+                <div key={g.campaignId ?? 'sin-campana'}>
+                  {multiCampaign && (
+                    <p className="text-xs font-medium text-gray-500 mb-1">{g.campaignNombre ?? 'Sin campaña'}</p>
+                  )}
+                  {g.items.map((item) => (
+                    <div key={`${g.campaignId}:${item.kitId}`} className="flex justify-between text-sm">
+                      <span className="text-gray-700">{item.kit.nombre} × {item.cantidad}</span>
+                      <span className="font-medium">${((item.kit.precioEstimado ?? item.kit.precioBase ?? 0) * item.cantidad).toLocaleString('es-CL')}</span>
+                    </div>
+                  ))}
+                  {g.campaignLogistica > 0 && (
+                    <div className="flex justify-between text-xs text-gray-400 mt-0.5">
+                      <span>Logística ({g.unidades} × ${g.campaignLogistica.toLocaleString('es-CL')})</span>
+                      <span>${g.logisticaTotal.toLocaleString('es-CL')}</span>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -118,15 +138,15 @@ export default function CheckoutPage() {
                 <span>Productos</span>
                 <span>${subtotal.toLocaleString('es-CL')}</span>
               </div>
-              {campaignLogistica > 0 && (
+              {logisticaTotal > 0 && (
                 <div className="flex justify-between text-sm text-gray-600">
-                  <span>Logística ({unidades} {unidades === 1 ? 'kit' : 'kits'} × ${campaignLogistica.toLocaleString('es-CL')})</span>
+                  <span>Logística total</span>
                   <span>${logisticaTotal.toLocaleString('es-CL')}</span>
                 </div>
               )}
               {coupon && (
                 <div className="flex justify-between text-sm text-primary-700">
-                  <span>Cupón aplicado</span>
+                  <span>Cupón aplicado{multiCampaign ? ' (1ª orden)' : ''}</span>
                   <span className="font-medium">{coupon}</span>
                 </div>
               )}
@@ -141,8 +161,9 @@ export default function CheckoutPage() {
             <div className="flex items-start gap-2">
               <InformationCircleIcon className="w-5 h-5 text-primary-600 flex-shrink-0 mt-0.5" />
               <p className="text-sm text-primary-700">
-                Al confirmar se creará tu orden y se vaciará el carrito. Luego deberás realizar la
-                transferencia y subir el comprobante en el siguiente paso.
+                {multiCampaign
+                  ? `Al confirmar se crearán ${groups.length} órdenes (una por campaña) y se vaciará el carrito. Con una sola transferencia por el total y un comprobante cubres todas.`
+                  : 'Al confirmar se creará tu orden y se vaciará el carrito. Luego deberás realizar la transferencia y subir el comprobante en el siguiente paso.'}
               </p>
             </div>
           </div>

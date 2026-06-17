@@ -66,6 +66,7 @@ export default function RegisterPage() {
         // Organización — se envía como FormData para incluir el archivo
         const formData = new FormData();
         if (data.name)     formData.append('name', data.name);
+        if (data.apellido) formData.append('apellido', data.apellido);
         if (data.email)    formData.append('email', data.email);
         if (data.password) formData.append('password', data.password);
         if (data.phone)    formData.append('phone', data.phone);
@@ -180,17 +181,30 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit(onSubmit)} className="card space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
 
-            {/* Nombre / Razón social */}
-            <div className="sm:col-span-2">
-              <label className="label">
-                {role === 'organization' ? 'Razón Social o Nombre de la Empresa' : 'Nombre completo'}
-              </label>
+            {/* Nombre y Apellido (de la persona o del representante de la empresa) */}
+            <div>
+              <label className="label">{role === 'organization' ? 'Nombre del representante' : 'Nombre'}</label>
               <input
-                {...register('name', { required: 'El nombre es requerido' })}
-                placeholder={role === 'organization' ? 'Empresa XYZ Ltda.' : 'Juan Pérez'}
+                {...register('name', {
+                  required: 'El nombre es requerido',
+                  pattern: { value: /^[A-Za-zÁÉÍÓÚáéíóúüÜñÑ]+$/, message: 'Solo letras, sin espacios' },
+                })}
+                placeholder="Juan"
                 className="input-field"
               />
               {errors.name && <p className="text-xs text-danger-600 mt-1">{errors.name.message}</p>}
+            </div>
+            <div>
+              <label className="label">{role === 'organization' ? 'Apellido del representante' : 'Apellido'}</label>
+              <input
+                {...register('apellido', {
+                  required: 'El apellido es requerido',
+                  pattern: { value: /^[A-Za-zÁÉÍÓÚáéíóúüÜñÑ]+$/, message: 'Solo letras, sin espacios' },
+                })}
+                placeholder="Pérez"
+                className="input-field"
+              />
+              {errors.apellido && <p className="text-xs text-danger-600 mt-1">{errors.apellido.message}</p>}
             </div>
 
             {/* Correo */}
@@ -399,9 +413,9 @@ export default function RegisterPage() {
             />
             <label className="text-sm text-gray-600">
               Acepto los{' '}
-              <span className="text-primary-600 cursor-pointer hover:underline">Términos y Condiciones</span>
+              <Link to="/terms" target="_blank" className="text-primary-600 hover:underline">Términos y Condiciones</Link>
               {' '}y la{' '}
-              <span className="text-primary-600 cursor-pointer hover:underline">Política de Privacidad</span>
+              <Link to="/privacy" target="_blank" className="text-primary-600 hover:underline">Política de Privacidad</Link>
               {' '}conforme a la Ley 19.628
             </label>
           </div>

@@ -7,4 +7,5 @@ export const authApi = {
   registerOrganization: (data) => api.post('/api/auth/register/organization', data),
   refresh: () => api.post('/api/auth/refresh'),
   validate: () => api.get('/api/auth/validate'),
+  changePassword: (data) => api.post('/api/auth/change-password', data),
 };

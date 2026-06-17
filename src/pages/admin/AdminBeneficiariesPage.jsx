@@ -6,15 +6,19 @@ import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import EmptyState from '../../components/ui/EmptyState';
 import toast from 'react-hot-toast';
+import StatusBadge from '../../components/ui/StatusBadge';
 import {
   UserGroupIcon,
   BuildingOfficeIcon,
   CheckCircleIcon,
   XCircleIcon,
   DocumentTextIcon,
+  ClockIcon,
 } from '@heroicons/react/24/outline';
 
-export default function AdminBeneficiariesPage() {
+const fmtDate = (d) => (d ? new Date(d).toLocaleString('es-CL', { dateStyle: 'medium', timeStyle: 'short' }) : '');
+
+export default function AdminBeneficiariesPage({ embedded = false }) {
   const [tab, setTab] = useState('beneficiarios');
   const [selectedId, setSelectedId] = useState(null);
   const [motivo, setMotivo] = useState('');
@@ -32,6 +36,20 @@ export default function AdminBeneficiariesPage() {
     queryKey: ['pending-companies'],
     queryFn: () => usersApi.getCompaniesByStatus('PENDIENTE'),
     select: (r) => (r.data ?? []).filter((c) => c.user?.role?.name === 'ROLE_ORGANIZACION'),
+  });
+
+  // Historial: cuentas ya validadas (aprobadas + rechazadas), de la más reciente a la más antigua.
+  const { data: resolvedAccounts = [] } = useQuery({
+    queryKey: ['accounts-history'],
+    queryFn: async () => {
+      const [v, r] = await Promise.all([
+        usersApi.getBeneficiariesByStatus('VERIFICADO'),
+        usersApi.getBeneficiariesByStatus('RECHAZADO'),
+      ]);
+      return [...(v.data ?? []), ...(r.data ?? [])].sort(
+        (a, b) => new Date(b.fechaVerificacion ?? 0) - new Date(a.fechaVerificacion ?? 0)
+      );
+    },
   });
 
   /* ── Mutaciones beneficiarios ── */
@@ -88,13 +106,15 @@ export default function AdminBeneficiariesPage() {
 
   /* ── Render ── */
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-      <div className="mb-8">
-        <h1 className="section-title mb-1">Validación de Cuentas</h1>
-        <p className="text-gray-500">
-          Aprueba o rechaza las solicitudes de registro de beneficiarios y empresas
-        </p>
-      </div>
+    <div className={embedded ? '' : 'max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10'}>
+      {!embedded && (
+        <div className="mb-8">
+          <h1 className="section-title mb-1">Validación de Cuentas</h1>
+          <p className="text-gray-500">
+            Aprueba o rechaza las solicitudes de registro de beneficiarios y empresas
+          </p>
+        </div>
+      )}
 
       {/* Pestañas */}
       <div className="flex gap-1 mb-6 border-b border-gray-200">
@@ -332,6 +352,38 @@ export default function AdminBeneficiariesPage() {
           </div>
         )
       )}
+
+      {/* ── Historial de validaciones de cuentas (último a primero) ── */}
+      <div className="mt-10">
+        <div className="flex items-center gap-2 mb-3">
+          <ClockIcon className="w-4 h-4 text-gray-400" />
+          <h2 className="font-semibold text-gray-700 text-sm uppercase tracking-wide">Historial de validaciones</h2>
+          <span className="text-xs text-gray-400">({resolvedAccounts.length})</span>
+        </div>
+        {resolvedAccounts.length === 0 ? (
+          <p className="text-sm text-gray-400">Aún no hay cuentas validadas.</p>
+        ) : (
+          <div className="space-y-2">
+            {resolvedAccounts.map((a) => (
+              <div key={`${a.id}-${a.estadoVerificacion}`} className="flex items-start justify-between gap-3 p-3 rounded-lg bg-gray-50">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">
+                    {a.name ?? a.user?.name ?? a.razonSocial ?? a.user?.email ?? '—'}
+                    <span className="text-xs font-normal text-gray-400 ml-2">
+                      {a.user?.role?.name === 'ROLE_ORGANIZACION' ? 'Empresa' : 'Beneficiario'}
+                    </span>
+                  </p>
+                  {a.motivoRechazo && <p className="text-xs text-gray-500 mt-0.5">Motivo: {a.motivoRechazo}</p>}
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <StatusBadge status={a.estadoVerificacion} />
+                  <p className="text-xs text-gray-400 mt-1">{fmtDate(a.fechaVerificacion)}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

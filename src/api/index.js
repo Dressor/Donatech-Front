@@ -4,3 +4,4 @@ export { catalogApi } from './catalog';
 export { kitIaApi } from './kitIa';
 export { ordersApi } from './orders';
 export { supportsApi } from './supports';
+export { shippingApi } from './shipping';

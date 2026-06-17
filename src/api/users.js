@@ -5,6 +5,18 @@ export const usersApi = {
   getAll: () => api.get('/api/users'),
   getById: (id) => api.get(`/api/users/${id}`),
   getByEmail: (email) => api.get('/api/users/by-email', { params: { email } }),
+  getCollaborators: () => api.get('/api/users/collaborators'),
+
+  // Perfil propio
+  getMyProfile: () => api.get('/api/users/me'),
+  updateMyProfile: (data) => api.put('/api/users/me', data),
+  uploadMyAvatar: (file) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api.post('/api/users/me/avatar', form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
   create: (data) => api.post('/api/users/add', data),
   update: (id, data) => api.put(`/api/users/${id}`, data),
   delete: (id) => api.delete(`/api/users/${id}`),

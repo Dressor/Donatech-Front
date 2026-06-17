@@ -28,6 +28,14 @@ export function AuthProvider({ children }) {
     return userInfo;
   }, []);
 
+  const updateUser = useCallback((partial) => {
+    setUser((prev) => {
+      const merged = { ...(prev ?? {}), ...partial };
+      localStorage.setItem('donatech_user', JSON.stringify(merged));
+      return merged;
+    });
+  }, []);
+
   const logout = useCallback(() => {
     setToken(null);
     setUser(null);
@@ -55,6 +63,7 @@ export function AuthProvider({ children }) {
         isAuthenticated: !!token,
         login,
         logout,
+        updateUser,
         hasRole,
         isAdmin,
         isDonante,

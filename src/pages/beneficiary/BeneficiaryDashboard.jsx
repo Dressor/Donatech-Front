@@ -22,7 +22,10 @@ export default function BeneficiaryDashboard() {
   const { data: orders = [], isLoading: ordersLoading } = useQuery({
     queryKey: ['beneficiary-orders', campaignId],
     queryFn: () => ordersApi.getDonationsByCampaign(campaignId),
-    select: (r) => r.data?.slice(0, 5) ?? [],
+    // Más recientes primero, luego las 5 primeras.
+    select: (r) => [...(r.data ?? [])]
+      .sort((a, b) => new Date(b.orderDate ?? 0) - new Date(a.orderDate ?? 0))
+      .slice(0, 5),
     enabled: !!campaignId,
   });
 

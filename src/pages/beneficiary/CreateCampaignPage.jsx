@@ -14,6 +14,14 @@ export default function CreateCampaignPage() {
   const [loading, setLoading] = useState(false);
   const [regions, setRegions] = useState([]);
   const [comunas, setComunas] = useState([]);
+  const [images, setImages] = useState([]);
+
+  const MAX_IMAGES = 3;
+  const handleImages = (e) => {
+    const files = Array.from(e.target.files).filter((f) => f.type.startsWith('image/'));
+    setImages((prev) => [...prev, ...files].slice(0, MAX_IMAGES));
+    e.target.value = '';
+  };
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm();
   const regionId = watch('regionId');
@@ -52,7 +60,18 @@ export default function CreateCampaignPage() {
         regionId: data.regionId || undefined,
         comunaId: data.comunaId || undefined,
       };
-      await catalogApi.createCampaign(payload);
+      const res = await catalogApi.createCampaign(payload);
+      const newId = res?.data?.id;
+      if (newId && images.length > 0) {
+        // Subir imágenes de la situación una vez creada la campaña.
+        const results = await Promise.allSettled(
+          images.map((img) => catalogApi.uploadCampaignImage(newId, img))
+        );
+        const failed = results.filter((r) => r.status === 'rejected').length;
+        if (failed > 0) {
+          toast.error(`Campaña creada, pero ${failed} imagen(es) no se pudieron subir. Puedes agregarlas luego.`);
+        }
+      }
       toast.success('¡Campaña creada! Está en revisión por nuestro equipo.');
       navigate('/beneficiary/dashboard');
     } catch (err) {
@@ -149,6 +168,38 @@ export default function CreateCampaignPage() {
             placeholder="Información adicional relevante..."
             className="input-field resize-none"
           />
+        </div>
+
+        <div>
+          <label className="label">Fotos de la situación (opcional, máx {MAX_IMAGES})</label>
+          <p className="text-xs text-gray-400 mb-2">Ayudan a los validadores a entender tu caso.</p>
+          <label className="btn-secondary text-sm inline-flex items-center gap-1.5 cursor-pointer">
+            Agregar imágenes
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleImages}
+              disabled={images.length >= MAX_IMAGES}
+              className="hidden"
+            />
+          </label>
+          {images.length > 0 && (
+            <div className="grid grid-cols-3 gap-2 mt-3">
+              {images.map((img, idx) => (
+                <div key={idx} className="relative rounded-lg overflow-hidden aspect-square bg-gray-100">
+                  <img src={URL.createObjectURL(img)} alt="" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setImages((p) => p.filter((_, i) => i !== idx))}
+                    className="absolute top-1 right-1 bg-black/50 rounded-full w-5 h-5 text-white text-xs hover:bg-black/70"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <button type="submit" disabled={loading || hasActiveCampaign} className="btn-primary w-full">

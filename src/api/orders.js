@@ -26,6 +26,13 @@ export const ordersApi = {
   getTransferProof: (id) => api.get(`/api/orders/${id}/transfer-proof`, { responseType: 'blob' }),
   getDeliveryPhoto: (id) => api.get(`/api/orders/${id}/delivery-photo`, { responseType: 'blob' }),
   getDeliveryDocument: (id) => api.get(`/api/orders/${id}/delivery-document`, { responseType: 'blob' }),
+  getDonationCertificate: (id) => api.get(`/api/orders/${id}/donation-certificate`, { responseType: 'blob' }),
+
+  // Documentos legales (Términos/Privacidad) + config certificado
+  getDocument: (slug) => api.get(`/api/config/documents/${slug}`),
+  saveDocument: (slug, data) => api.put(`/api/config/documents/${slug}`, data),
+  getCertificateConfig: () => api.get('/api/config/certificate'),
+  saveCertificateConfig: (data) => api.put('/api/config/certificate', data),
 
   // Asignar transportista (EN_PREPARACION → ASIGNADA_ENVIO)
   assignCourier: (id, data, changedById) =>
@@ -48,10 +55,25 @@ export const ordersApi = {
   confirmDelivery: (id, confirmedById) =>
     api.patch(`/api/orders/${id}/confirm-delivery`, null, { params: { confirmedById } }),
 
-  // Donations (alias)
+  // Donación padre (agrupa una orden por campaña)
   getDonations: () => api.get('/api/donations'),
+  getDonation: (id) => api.get(`/api/donations/${id}`),
   getDonationById: (id) => api.get(`/api/donations/${id}`),
   getDonationsByDonor: (email) => api.get('/api/donations/by-donor', { params: { email } }),
+  // Comprobante a nivel donación (un solo pago para todas sus órdenes)
+  uploadDonationProof: (id, file) => {
+    const form = new FormData();
+    form.append('file', file);
+    return api.post(`/api/donations/${id}/transfer-proof`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  getDonationProof: (id) => api.get(`/api/donations/${id}/transfer-proof`, { responseType: 'blob' }),
+  // Cancelar una orden individual (la donación se mantiene con el resto de órdenes)
+  cancelOrder: (id, motivo, changedById) =>
+    api.patch(`/api/orders/${id}/cancel`, null, { params: { motivo, changedById } }),
+  getByCollaborator: (collaboratorId) => api.get(`/api/orders/by-collaborator/${collaboratorId}`),
+  getDeliveries: () => api.get('/api/orders/deliveries'),
   getDonationsByCampaign: (campaignId, visibleOnly = false) =>
     api.get(`/api/donations/by-campaign/${campaignId}`, { params: { visibleOnly } }),
   // Agradecimiento del beneficiario al donante (orden ENTREGADA)

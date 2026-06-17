@@ -7,20 +7,19 @@ import { useAuth } from '../../context/AuthContext';
 import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import StatusBadge from '../../components/ui/StatusBadge';
 import KitDetailModal from '../../components/ui/KitDetailModal';
+import CampaignKitCard from '../../components/shared/CampaignKitCard';
 import toast from 'react-hot-toast';
 import {
   MapPinIcon,
-  ShoppingCartIcon,
   HeartIcon,
-  CubeIcon,
   EyeIcon,
   PhotoIcon,
 } from '@heroicons/react/24/outline';
 
 export default function CampaignDetailPage() {
   const { id } = useParams();
-  const { addItem, setCampaignId, setCampaignLogistica } = useCart();
-  const { isAuthenticated, isDonante } = useAuth();
+  const { addItem } = useCart();
+  const { isAuthenticated, isDonante, isOrganizacion } = useAuth();
   const navigate = useNavigate();
   const [selectedKit, setSelectedKit] = useState(null);
 
@@ -48,13 +47,15 @@ export default function CampaignDetailPage() {
       navigate('/login');
       return;
     }
-    if (!isDonante) {
+    if (!isDonante && !isOrganizacion) {
       toast.error('Solo los donantes pueden realizar donaciones');
       return;
     }
-    setCampaignId(campaign.id);
-    setCampaignLogistica(campaign.costoLogistica ?? 0);
-    addItem({ id: ck.kitId, nombre: ck.kitNombre, precioEstimado: ck.kitPrecioEstimado });
+    addItem(
+      { id: ck.kitId, nombre: ck.kitNombre, precioEstimado: ck.kitPrecioEstimado },
+      1,
+      { campaignId: campaign.id, campaignNombre: campaign.titulo, campaignLogistica: campaign.costoLogistica ?? 0 }
+    );
     toast.success(`${ck.kitNombre} agregado al carrito`);
   };
 
@@ -144,72 +145,16 @@ export default function CampaignDetailPage() {
         {campaign.kits?.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {campaign.kits.map((ck) => {
-              const fulfilled = ck.cantidadFulfilled ?? 0;
-              const delivered = ck.cantidadEntregada ?? 0;
-              const needed = ck.cantidadNecesaria ?? 1;
-              const pct = Math.min(100, Math.round((fulfilled / needed) * 100));
-              const complete = pct >= 100;
-
+              const complete = (ck.cantidadFulfilled ?? 0) >= (ck.cantidadNecesaria ?? 1);
               return (
-                <div key={ck.id} className="card flex flex-col gap-3">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-blue flex items-center justify-center flex-shrink-0">
-                      <CubeIcon className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900 truncate">{ck.kitNombre}</h3>
-                      {ck.kitPrecioEstimado > 0 && (
-                        <p className="text-sm text-primary-600 font-medium">
-                          ${ck.kitPrecioEstimado.toLocaleString('es-CL')} CLP
-                        </p>
-                      )}
-                      {campaign.costoLogistica > 0 && (
-                        <p className="text-xs text-gray-400">
-                          + ${campaign.costoLogistica.toLocaleString('es-CL')} logística por kit
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Progress bar */}
-                  <div>
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
-                      <span>Recibidos: <span className="font-semibold text-gray-700">{fulfilled}</span></span>
-                      <span>Necesarios: <span className="font-semibold text-gray-700">{needed}</span></span>
-                    </div>
-                    <div className="w-full bg-gray-100 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full transition-all ${complete ? 'bg-green-500' : 'bg-primary-500'}`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Entregados: <span className="font-semibold text-gray-600">{delivered}</span>
-                    </p>
-                    {complete && (
-                      <p className="text-xs text-green-600 font-medium mt-1">¡Meta alcanzada!</p>
-                    )}
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex gap-2 mt-auto">
-                    <button
-                      onClick={() => setSelectedKit({ kitId: ck.kitId, kitNombre: ck.kitNombre })}
-                      className="btn-secondary text-sm flex items-center justify-center gap-1.5 flex-1"
-                    >
-                      <EyeIcon className="w-4 h-4" />
-                      Ver contenido
-                    </button>
-                    <button
-                      onClick={() => handleAddKit(ck)}
-                      disabled={complete}
-                      className="btn-primary text-sm flex items-center justify-center gap-1.5 flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      <ShoppingCartIcon className="w-4 h-4" />
-                      Donar kit
-                    </button>
-                  </div>
-                </div>
+                <CampaignKitCard
+                  key={ck.id}
+                  kit={ck}
+                  campaignLogistica={campaign.costoLogistica}
+                  onViewDetails={() => setSelectedKit({ kitId: ck.kitId, kitNombre: ck.kitNombre })}
+                  onDonate={() => handleAddKit(ck)}
+                  donateDisabled={complete}
+                />
               );
             })}
           </div>

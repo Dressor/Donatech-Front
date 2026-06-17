@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { ordersApi } from '../../api';
 import { useAuth } from '../../context/AuthContext';
@@ -61,7 +61,7 @@ function EvidenceImage({ title, queryKey, fetchFn, enabled }) {
 
 export default function DonationDetailPage() {
   const { id } = useParams();
-  const { user, isAdmin, isValidador } = useAuth();
+  const { user, isAdmin, isValidador, isOrganizacion } = useAuth();
   const queryClient = useQueryClient();
   const fileRef = useRef();
   const [proofFile, setProofFile] = useState(null);
@@ -72,7 +72,7 @@ export default function DonationDetailPage() {
 
   const { data: order, isLoading, isError, error } = useQuery({
     queryKey: ['order', id],
-    queryFn: () => ordersApi.getDonationById(id),
+    queryFn: () => ordersApi.getById(id),
     select: (r) => r.data,
     refetchInterval: 30000,
   });
@@ -98,8 +98,8 @@ export default function DonationDetailPage() {
   };
 
   const cancelMutation = useMutation({
-    mutationFn: (motivo) => ordersApi.cancelDonation(id, motivo, user?.id),
-    onSuccess: () => { toast.success('Donación cancelada'); invalidate(); },
+    mutationFn: (motivo) => ordersApi.cancelOrder(id, motivo, user?.id),
+    onSuccess: () => { toast.success('Orden cancelada'); invalidate(); },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 
@@ -112,6 +112,12 @@ export default function DonationDetailPage() {
   const thankMutation = useMutation({
     mutationFn: () => ordersApi.sendThankYou(id, message, thankImages),
     onSuccess: () => { toast.success('¡Gracias enviadas al donante!'); setThankSent(true); setShowThank(false); },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  const confirmDeliveryMutation = useMutation({
+    mutationFn: () => ordersApi.confirmDelivery(id, user?.id),
+    onSuccess: () => { toast.success('¡Entrega confirmada!'); invalidate(); },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 
@@ -136,6 +142,20 @@ export default function DonationDetailPage() {
   const isStaff = isAdmin || isValidador;
   const canCancel = isOwner && CANCELLABLE_STATES.includes(estado);
   const canThank = isBeneficiaryViewer && estado === 'ENTREGADA';
+  const canConfirmDelivery = estado === 'PENDIENTE_CONFIRMACION' && (isBeneficiaryViewer || isAdmin);
+  const CERT_STATES = ['EN_PREPARACION', 'ASIGNADA_ENVIO', 'EN_CAMINO', 'PENDIENTE_CONFIRMACION', 'ENTREGADA'];
+  const canCertificate = isOrganizacion && isOwner && CERT_STATES.includes(estado);
+
+  const downloadCertificate = async () => {
+    try {
+      const res = await ordersApi.getDonationCertificate(id);
+      const url = URL.createObjectURL(res.data);
+      const a = document.createElement('a');
+      a.href = url; a.download = `certificado-donacion-${id}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) { toast.error(getErrorMessage(err)); }
+  };
 
   const downloadDoc = async () => {
     try {
@@ -210,6 +230,33 @@ export default function DonationDetailPage() {
         </div>
       )}
 
+      {/* Confirmación de entrega (beneficiario dueño o admin, estado PENDIENTE_CONFIRMACION) */}
+      {canConfirmDelivery && (
+        <div className="card mb-6 border border-green-200 bg-green-50">
+          <div className="flex items-center gap-2 mb-3">
+            <CheckCircleIcon className="w-5 h-5 text-green-600" />
+            <h3 className="font-semibold text-green-800">Confirma la recepción de tu donación</h3>
+          </div>
+          <p className="text-sm text-gray-600 mb-4">
+            El transportista registró la entrega. Confirma que la recibiste para cerrar el proceso.
+            Si hubo un problema, repórtalo a soporte en vez de confirmar.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => { if (window.confirm('¿Confirmas que recibiste esta donación?')) confirmDeliveryMutation.mutate(); }}
+              disabled={confirmDeliveryMutation.isPending}
+              className="btn-primary flex items-center gap-1.5"
+            >
+              <CheckCircleIcon className="w-5 h-5" />
+              {confirmDeliveryMutation.isPending ? 'Confirmando...' : 'Confirmar entrega'}
+            </button>
+            <Link to={`/support/delivery-issue?orderId=${id}`} className="btn-secondary flex items-center gap-1.5">
+              No la recibí / reportar
+            </Link>
+          </div>
+        </div>
+      )}
+
       {/* Kits */}
       <div className="card mb-6">
         <div className="flex items-center gap-2 mb-4">
@@ -232,36 +279,29 @@ export default function DonationDetailPage() {
         )}
       </div>
 
-      {/* Donante pendiente de pago — retomar comprobante */}
-      {estado === 'INGRESADA' && isOwner && (
-        <div className="card mb-6 border border-amber-200 bg-amber-50">
-          <div className="flex items-center gap-2 mb-3">
+      {/* Pendiente de pago → el comprobante se sube a nivel donación (un pago) */}
+      {estado === 'INGRESADA' && isOwner && order.donationId && (
+        <div className="card mb-6 border border-amber-200 bg-amber-50 flex items-center justify-between gap-3 flex-wrap">
+          <div className="flex items-center gap-2">
             <BanknotesIcon className="w-5 h-5 text-amber-700" />
-            <h3 className="font-semibold text-amber-800">Pendiente: sube tu comprobante de pago</h3>
+            <p className="text-sm text-amber-800">Esta orden pertenece a una donación pendiente de pago.</p>
           </div>
-          {transferConfig && (
-            <div className="rounded-xl bg-gradient-blue text-white p-4 mb-4 grid grid-cols-2 gap-2 text-sm">
-              <div><p className="text-blue-200 text-xs">Banco</p><p className="font-medium">{transferConfig.banco}</p></div>
-              <div><p className="text-blue-200 text-xs">N° cuenta</p><p className="font-medium">{transferConfig.nroCuenta}</p></div>
-              <div><p className="text-blue-200 text-xs">RUT</p><p className="font-medium">{transferConfig.rut}</p></div>
-              <div><p className="text-blue-200 text-xs">Beneficiario</p><p className="font-medium">{transferConfig.nombreBeneficiario}</p></div>
+          <Link to={`/donation/${order.donationId}`} className="btn-primary text-sm">Ir a la donación →</Link>
+        </div>
+      )}
+
+      {/* Certificado de donación (empresa, pago validado) */}
+      {canCertificate && (
+        <div className="card mb-6 border border-primary-200 bg-primary-50">
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <p className="font-semibold text-primary-800">Certificado de donación</p>
+              <p className="text-sm text-gray-600">Documento con los datos de tu empresa para fines legales.</p>
             </div>
-          )}
-          <div
-            onClick={() => fileRef.current?.click()}
-            className={`border-2 border-dashed rounded-xl p-6 text-center cursor-pointer mb-3 ${proofFile ? 'border-primary-400 bg-primary-50' : 'border-amber-300 hover:border-primary-400 hover:bg-white'}`}
-          >
-            <DocumentArrowUpIcon className="w-8 h-8 text-gray-400 mx-auto mb-2" />
-            <p className="text-sm font-medium text-gray-700">{proofFile ? proofFile.name : 'Haz clic para adjuntar comprobante'}</p>
+            <button onClick={downloadCertificate} className="btn-primary text-sm inline-flex items-center gap-1.5">
+              <ArrowDownTrayIcon className="w-4 h-4" /> Descargar certificado
+            </button>
           </div>
-          <input ref={fileRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setProofFile(e.target.files[0])} className="hidden" />
-          <button
-            onClick={() => { if (!proofFile) { toast.error('Adjunta el comprobante'); return; } uploadProofMutation.mutate(proofFile); }}
-            disabled={uploadProofMutation.isPending}
-            className="btn-primary w-full"
-          >
-            {uploadProofMutation.isPending ? 'Enviando...' : 'Enviar comprobante →'}
-          </button>
         </div>
       )}
 

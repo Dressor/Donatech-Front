@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '../../context/AuthContext';
 import { useCart } from '../../context/CartContext';
-import { ordersApi } from '../../api';
+import { ordersApi, usersApi } from '../../api';
 import {
   HeartIcon,
   Bars3Icon,
@@ -31,27 +31,29 @@ const navLinks = {
   ],
   ROLE_ADMIN: [
     { label: 'Dashboard', to: '/admin/dashboard' },
-    { label: 'Backoffice', to: '/admin/backoffice' },
+    { label: 'Soporte', to: '/admin/backoffice' },
     { label: 'Entregas', to: '/admin/deliveries' },
-    { label: 'Validar cuentas', to: '/admin/beneficiaries' },
+    { label: 'Rutas', to: '/admin/routes' },
+    { label: 'Validaciones', to: '/admin/beneficiaries' },
     { label: 'Usuarios', to: '/admin/users' },
     { label: 'Catálogo', to: '/admin/catalog' },
     { label: 'Medio de Pago', to: '/admin/transfer-config' },
+    { label: 'Documentos', to: '/admin/documents' },
   ],
   ROLE_VOLUNTARIO: [
-    { label: 'Validaciones', to: '/validator/pending' },
+    { label: 'Catálogo', to: '/campaigns' },
+    { label: 'Soporte', to: '/support/delivery-issue' },
     { label: 'Entregas', to: '/admin/deliveries' },
-    { label: 'Tickets', to: '/validator/tickets' },
   ],
   ROLE_ORGANIZACION: [
     { label: 'Campañas', to: '/campaigns' },
-    { label: 'Mis Campañas', to: '/org/campaigns' },
+    { label: 'Mis Donaciones', to: '/donor/history' },
     { label: 'Soporte', to: '/support/delivery-issue' },
   ],
 };
 
 export default function Navbar() {
-  const { isAuthenticated, user, logout, isAdmin, isDonante, isBeneficiario, isValidador } = useAuth();
+  const { isAuthenticated, user, logout, isAdmin, isDonante, isBeneficiario, isValidador, isOrganizacion } = useAuth();
   const { items } = useCart();
   const navigate = useNavigate();
   const location = useLocation();
@@ -62,9 +64,18 @@ export default function Navbar() {
     queryKey: ['donations-pending', user?.email],
     queryFn: () => ordersApi.getDonationsByDonor(user.email),
     select: (r) => (r.data ?? []).filter((d) => (d.estado ?? d.status) === 'INGRESADA').length,
-    enabled: isDonante && !!user?.email,
+    enabled: (isDonante || isOrganizacion) && !!user?.email,
     refetchOnWindowFocus: true,
   });
+
+  // Nombre + apellido para el navbar (correo solo en /profile)
+  const { data: profile } = useQuery({
+    queryKey: ['my-profile'],
+    queryFn: () => usersApi.getMyProfile(),
+    select: (r) => r.data,
+    enabled: isAuthenticated,
+  });
+  const displayName = [profile?.name, profile?.apellido].filter(Boolean).join(' ') || user?.email;
 
   const pendingBadge = (to) =>
     to === '/donor/history' && pendingCount > 0 ? (
@@ -115,7 +126,7 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 group">
+          <Link to={isAdmin ? '/admin/dashboard' : '/'} className="flex items-center gap-2 group">
             <div className="w-8 h-8 rounded-lg bg-gradient-blue flex items-center justify-center shadow-md">
               <HeartIcon className="w-5 h-5 text-white" />
             </div>
@@ -146,7 +157,7 @@ export default function Navbar() {
 
           {/* Right actions */}
           <div className="flex items-center gap-2">
-            {isDonante && (
+            {(isDonante || isOrganizacion) && (
               <Link
                 to="/donor/cart"
                 className="relative p-2 rounded-lg text-gray-600 hover:text-primary-700 hover:bg-gray-50 transition-colors"
@@ -167,7 +178,7 @@ export default function Navbar() {
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   <UserCircleIcon className="w-5 h-5 text-primary-600" />
-                  <span className="font-medium max-w-[120px] truncate">{user?.email}</span>
+                  <span className="font-medium max-w-[160px] truncate">{displayName}</span>
                 </Link>
                 <button
                   onClick={handleLogout}
@@ -217,12 +228,22 @@ export default function Navbar() {
               </Link>
             ))}
             {isAuthenticated ? (
-              <button
-                onClick={handleLogout}
-                className="w-full text-left px-4 py-2.5 text-sm font-medium text-danger-600 rounded-lg hover:bg-red-50"
-              >
-                Cerrar sesión
-              </button>
+              <>
+                <Link
+                  to="/profile"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-gray-700 rounded-lg hover:bg-gray-50 border-t border-gray-100 mt-1 pt-3"
+                >
+                  <UserCircleIcon className="w-5 h-5 text-primary-600" />
+                  <span className="truncate">{displayName}</span>
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  className="w-full text-left px-4 py-2.5 text-sm font-medium text-danger-600 rounded-lg hover:bg-red-50"
+                >
+                  Cerrar sesión
+                </button>
+              </>
             ) : (
               <div className="pt-2 flex flex-col gap-2 px-4">
                 <Link to="/login" onClick={() => setOpen(false)} className="btn-outline text-sm text-center">

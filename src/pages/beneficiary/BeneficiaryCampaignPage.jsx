@@ -9,6 +9,7 @@ import LoadingSpinner from '../../components/ui/LoadingSpinner';
 import StatusBadge from '../../components/ui/StatusBadge';
 import AIChatModal from '../../components/ui/AIChatModal';
 import ManualKitForm from '../../components/ui/ManualKitForm';
+import CampaignKitCard from '../../components/shared/CampaignKitCard';
 import { useAuth } from '../../context/AuthContext';
 import {
   CubeIcon,
@@ -65,6 +66,16 @@ export default function BeneficiaryCampaignPage() {
     mutationFn: (kitId) => catalogApi.removeKitFromCampaign(id, kitId),
     onSuccess: () => {
       toast.success('Kit eliminado de la campaña');
+      queryClient.invalidateQueries(['campaign', id]);
+    },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  /* ── Editar cantidad necesaria ── */
+  const updateQtyMutation = useMutation({
+    mutationFn: ({ kitId, qty }) => catalogApi.updateCampaignKit(id, kitId, qty),
+    onSuccess: () => {
+      toast.success('Cantidad necesaria actualizada');
       queryClient.invalidateQueries(['campaign', id]);
     },
     onError: (err) => toast.error(getErrorMessage(err)),
@@ -235,49 +246,22 @@ export default function BeneficiaryCampaignPage() {
             {isEditable && ' Agrega uno usando el botón de arriba.'}
           </p>
         ) : (
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {campaign.kits.map((ck) => {
-              const fulfilled = ck.cantidadFulfilled ?? 0;
-              const delivered = ck.cantidadEntregada ?? 0;
-              const needed = ck.cantidadNecesaria ?? 1;
-              const pct = Math.min(100, Math.round((fulfilled / needed) * 100));
-              const complete = pct >= 100;
+              const fresh = (ck.cantidadFulfilled ?? 0) === 0 && (ck.cantidadEntregada ?? 0) === 0;
               return (
-                <div key={ck.id} className="py-3 px-4 bg-gray-50 rounded-xl">
-                  <div className="flex items-start justify-between gap-3">
-                    <p className="font-medium text-gray-800 text-sm">{ck.kitNombre ?? `Kit #${ck.kitId}`}</p>
-                    {isEditable && delivered === 0 && fulfilled === 0 && (
-                      <button
-                        onClick={() => {
-                          if (window.confirm(`¿Quitar el kit "${ck.kitNombre}" de la campaña?`))
-                            removeMutation.mutate(ck.kitId);
-                        }}
-                        disabled={removeMutation.isPending}
-                        className="p-1.5 text-danger-500 hover:bg-danger-50 rounded-lg transition-colors flex-shrink-0"
-                        title="Eliminar kit"
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
-                    )}
-                  </div>
-                  {/* Barra de progreso */}
-                  <div className="mt-2">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
-                      <span>En proceso: <span className="font-semibold text-gray-700">{fulfilled}</span></span>
-                      <span>Necesarios: <span className="font-semibold text-gray-700">{needed}</span></span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full transition-all ${complete ? 'bg-green-500' : 'bg-primary-500'}`}
-                        style={{ width: `${pct}%` }}
-                      />
-                    </div>
-                    <p className="text-xs text-gray-400 mt-1">
-                      Entregados: <span className="font-semibold text-gray-600">{delivered}</span>
-                    </p>
-                    {complete && <p className="text-xs text-green-600 font-medium mt-1">¡Meta alcanzada!</p>}
-                  </div>
-                </div>
+                <CampaignKitCard
+                  key={ck.id}
+                  kit={ck}
+                  campaignLogistica={campaign.costoLogistica}
+                  editable={isEditable}
+                  onUpdateQuantity={(kitId, qty) => updateQtyMutation.mutate({ kitId, qty })}
+                  onRemove={(kitId) => {
+                    if (window.confirm(`¿Quitar el kit "${ck.kitNombre}" de la campaña?`))
+                      removeMutation.mutate(kitId);
+                  }}
+                  canRemove={fresh}
+                />
               );
             })}
           </div>
