@@ -55,14 +55,6 @@ export default function LoginPage() {
             La plataforma solidaria que conecta donantes con familias vulnerables,
             garantizando transparencia y trazabilidad en cada donación.
           </p>
-          <div className="mt-10 grid grid-cols-3 gap-4 text-center">
-            {[['1,240+', 'Familias'], ['85', 'Campañas'], ['100%', 'Transparente']].map(([v, l]) => (
-              <div key={l} className="bg-white/10 rounded-xl py-3 px-2 border border-white/20">
-                <div className="text-xl font-bold">{v}</div>
-                <div className="text-xs text-blue-200 mt-0.5">{l}</div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 
