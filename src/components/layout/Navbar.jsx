@@ -137,17 +137,16 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-1">
+          <div className="hidden lg:flex items-center gap-0.5">
             {links.map((l) => (
               <Link
                 key={l.to}
                 to={l.to}
                 onClick={(e) => handleNavClick(e, l.to)}
-                className={`relative px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-150 ${
-                  location.pathname === l.to
+                className={`relative whitespace-nowrap px-3 py-2 rounded-lg text-sm font-medium transition-colors duration-150 ${location.pathname === l.to
                     ? 'bg-primary-50 text-primary-700'
                     : 'text-gray-600 hover:text-primary-700 hover:bg-gray-50'
-                }`}
+                  }`}
               >
                 {l.label}
                 {pendingBadge(l.to)}
@@ -172,7 +171,7 @@ export default function Navbar() {
             )}
 
             {isAuthenticated ? (
-              <div className="hidden md:flex items-center gap-2">
+              <div className="hidden lg:flex items-center gap-2">
                 <Link
                   to="/profile"
                   className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
@@ -189,7 +188,7 @@ export default function Navbar() {
                 </button>
               </div>
             ) : (
-              <div className="hidden md:flex items-center gap-2">
+              <div className="hidden lg:flex items-center gap-2">
                 <Link to="/login" className="btn-ghost text-sm py-2 px-4">
                   Iniciar sesión
                 </Link>
@@ -202,7 +201,7 @@ export default function Navbar() {
             {/* Mobile menu button */}
             <button
               onClick={() => setOpen(!open)}
-              className="md:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-50"
+              className="lg:hidden p-2 rounded-lg text-gray-600 hover:bg-gray-50"
             >
               {open ? <XMarkIcon className="w-5 h-5" /> : <Bars3Icon className="w-5 h-5" />}
             </button>
@@ -211,7 +210,7 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         {open && (
-          <div className="md:hidden border-t border-gray-100 py-3 space-y-1 animate-fade-in">
+          <div className="lg:hidden border-t border-gray-100 py-3 space-y-1 animate-fade-in">
             {links.map((l) => (
               <Link
                 key={l.to}

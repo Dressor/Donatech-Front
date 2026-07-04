@@ -111,6 +111,15 @@ export default function ProfilePage() {
     onError: (err) => toast.error(getErrorMessage(err)),
   });
 
+  const resendMutation = useMutation({
+    mutationFn: () => authApi.resendVerification(),
+    onSuccess: () => toast.success('Te reenviamos el correo de verificación. Revisa tu bandeja.'),
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  // NULL = cuenta legacy (previa a la verificación por correo) → no se muestra el banner.
+  const needsEmailVerification = profile?.emailVerified === false;
+
   if (!user) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-16 text-center">
@@ -123,6 +132,25 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-6">
+      {/* Banner: correo sin verificar */}
+      {needsEmailVerification && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 flex items-start gap-3">
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-amber-800">Debes validar tu correo electrónico</p>
+            <p className="text-sm text-amber-700 mt-0.5">
+              Verifica tu correo para poder crear campañas. Revisa tu bandeja de entrada o reenvía el enlace.
+            </p>
+          </div>
+          <button
+            onClick={() => resendMutation.mutate()}
+            disabled={resendMutation.isPending}
+            className="flex-shrink-0 px-3 py-2 rounded-lg bg-amber-500 text-white text-sm font-medium hover:bg-amber-600 disabled:opacity-50"
+          >
+            {resendMutation.isPending ? 'Enviando...' : 'Reenviar correo'}
+          </button>
+        </div>
+      )}
+
       {/* Cabecera + avatar */}
       <div className="card">
         <div className="flex items-center gap-4">

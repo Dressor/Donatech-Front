@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { HeartIcon, ClockIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { donationDisplayStatus } from '../../utils/donationStatus';
 
 export default function DonationHistoryPage() {
   const { user } = useAuth();
@@ -68,7 +69,7 @@ export default function DonationHistoryPage() {
                         {nOrders} {nOrders === 1 ? 'campaña' : 'campañas'}
                       </p>
                     </div>
-                    <StatusBadge status={d.estadoPago ?? d.estado} />
+                    <StatusBadge status={donationDisplayStatus(d)} />
                   </div>
                   <div className="flex items-center gap-4 mt-2 text-sm text-gray-400">
                     <span className="flex items-center gap-1">

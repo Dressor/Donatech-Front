@@ -6,9 +6,30 @@ import { useAuthImage } from '../../utils/imageBlob';
 import StatusBadge from './StatusBadge';
 import LoadingSpinner from './LoadingSpinner';
 import toast from 'react-hot-toast';
-import { XMarkIcon, ShieldCheckIcon, CheckCircleIcon, XCircleIcon, UserIcon, BuildingOffice2Icon, DocumentIcon, HeartIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, ShieldCheckIcon, CheckCircleIcon, XCircleIcon, UserIcon, BuildingOffice2Icon, DocumentIcon, HeartIcon, MapPinIcon, PhotoIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+
+// Miniatura de una imagen de campaña cargada con JWT (una por imageId).
+function CampaignImageThumb({ campaignId, imageId }) {
+  const { blobUrl, isLoading } = useAuthImage(
+    ['campaign-image', campaignId, imageId],
+    () => catalogApi.getCampaignImage(campaignId, imageId)
+  );
+  if (isLoading) {
+    return <div className="w-full h-28 rounded-lg bg-gray-100 animate-pulse" />;
+  }
+  if (!blobUrl) return null;
+  return (
+    <a href={blobUrl} target="_blank" rel="noreferrer">
+      <img
+        src={blobUrl}
+        alt="Foto de la campaña"
+        className="w-full h-28 rounded-lg object-cover border border-gray-100 hover:opacity-90"
+      />
+    </a>
+  );
+}
 
 export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
   const [rejecting, setRejecting] = useState(false);
@@ -50,6 +71,14 @@ export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
     queryFn: () => catalogApi.getCampaignById(campaignIdToLoad),
     select: (r) => r.data,
     enabled: !!campaignIdToLoad,
+  });
+
+  // Fotos de la campaña — el admin las necesita para dimensionar el despacho.
+  const { data: campaignImages = [] } = useQuery({
+    queryKey: ['campaign-images', campaignIdToLoad],
+    queryFn: () => catalogApi.getCampaignImages(campaignIdToLoad),
+    select: (r) => r.data ?? [],
+    enabled: isCampaignValidation && !!campaignIdToLoad,
   });
 
   // Owner = user id del dueño de la campaña. Preferir el de la orden (backend nuevo),
@@ -248,8 +277,29 @@ export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
                 <div className="text-sm space-y-0.5">
                   <p className="font-medium text-gray-900">{campaign.titulo}</p>
                   {campaign.motivo && <p className="text-gray-500">Motivo: {campaign.motivo}</p>}
+                  {campaign.descripcion && <p className="text-gray-500">{campaign.descripcion}</p>}
                 </div>
               </div>
+
+              {/* Fotos de la campaña (validación de campaña) */}
+              {isCampaignValidation && (
+                <div className="mt-3">
+                  <p className="flex items-center gap-1.5 text-xs text-gray-400 mb-2">
+                    <PhotoIcon className="w-4 h-4" /> Evidencia fotográfica
+                  </p>
+                  {campaignImages.length > 0 ? (
+                    <div className="grid grid-cols-3 gap-2">
+                      {campaignImages.map((img) => (
+                        <CampaignImageThumb key={img.id} campaignId={campaignIdToLoad} imageId={img.id} />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-400 italic bg-gray-50 rounded-xl p-3">
+                      La campaña no adjuntó fotos.
+                    </p>
+                  )}
+                </div>
+              )}
             </section>
           )}
 
@@ -265,6 +315,10 @@ export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
                     <p className="font-medium text-gray-900">{beneficiaryName}</p>
                     {beneficiary.user?.email && <p className="text-gray-500">{beneficiary.user.email}</p>}
                     {beneficiary.rut && <p className="text-gray-500">RUT: {beneficiary.rut}</p>}
+                    <p className="flex items-start gap-1 text-gray-500">
+                      <MapPinIcon className="w-4 h-4 mt-0.5 flex-shrink-0 text-gray-400" />
+                      <span>{beneficiary.direccionEntrega || 'Sin dirección de entrega registrada'}</span>
+                    </p>
                     {beneficiary.estadoVerificacion && (
                       <StatusBadge status={beneficiary.estadoVerificacion} />
                     )}

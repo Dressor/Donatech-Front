@@ -53,10 +53,11 @@ export default function AdminDashboard() {
   const VALIDATION_TYPES = ['VALIDACION_TRANSFERENCIA', 'VALIDACION_CAMPAÑA'];
   const validationTickets = pendingTickets.filter((t) => VALIDATION_TYPES.includes(t.tipo));
   const supportTickets = pendingTickets.filter((t) => !VALIDATION_TYPES.includes(t.tipo));
-  // Pendientes de validación = cuentas + campañas + transferencias + entregas por confirmar.
+  // Pendientes de validación = tickets de validación abiertos (campañas + transferencias)
+  // + entregas por confirmar. Las cuentas se autogestionan (verificación por correo) y se
+  // muestran aparte en "Cuentas pendientes"; no se suman aquí para no inflar el número.
   const pendientesValidacion =
-    validationTickets.length + pendingBeneficiaries.length + pendingCompanies.length +
-    (byStatus.PENDIENTE_CONFIRMACION ?? 0);
+    validationTickets.length + (byStatus.PENDIENTE_CONFIRMACION ?? 0);
 
   const stats = [
     {

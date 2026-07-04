@@ -52,4 +52,7 @@ export const catalogApi = {
   },
   deleteCampaignImage: (campaignId, imageId) => api.delete(`/api/campaigns/${campaignId}/images/${imageId}`),
   getCampaignImageUrl: (campaignId, imageId) => `/api/campaigns/${campaignId}/images/${imageId}`,
+  // Bytes de la imagen vía axios (con JWT) para previsualizar con useAuthImage.
+  getCampaignImage: (campaignId, imageId) =>
+    api.get(`/api/campaigns/${campaignId}/images/${imageId}`, { responseType: 'blob' }),
 };

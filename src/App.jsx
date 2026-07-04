@@ -18,6 +18,7 @@ import CampaignDetailPage from './pages/public/CampaignDetailPage';
 // Auth
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+const VerifyEmailPage = lazy(() => import('./pages/auth/VerifyEmailPage'));
 
 // Donor — lazy (code splitting)
 const CartPage = lazy(() => import('./pages/donor/CartPage'));
@@ -79,6 +80,7 @@ function App() {
                 {/* Auth routes */}
                 <Route path="login" element={<LoginPage />} />
                 <Route path="register" element={<RegisterPage />} />
+                <Route path="verify-email" element={<VerifyEmailPage />} />
 
                 {/* Donor routes */}
                 <Route
