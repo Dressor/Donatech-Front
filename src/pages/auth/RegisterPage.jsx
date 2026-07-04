@@ -65,16 +65,16 @@ export default function RegisterPage() {
       } else {
         // Organización — se envía como FormData para incluir el archivo
         const formData = new FormData();
-        if (data.name)     formData.append('name', data.name);
+        if (data.name) formData.append('name', data.name);
         if (data.apellido) formData.append('apellido', data.apellido);
-        if (data.email)    formData.append('email', data.email);
+        if (data.email) formData.append('email', data.email);
         if (data.password) formData.append('password', data.password);
-        if (data.phone)    formData.append('phone', data.phone);
-        if (data.rut)      formData.append('rut', data.rut);
-        if (data.regionId)      formData.append('regionId', data.regionId);
-        if (data.comunaId)      formData.append('comunaId', data.comunaId);
-        if (data.razonSocial)   formData.append('razonSocial', data.razonSocial);
-        if (data.giro)          formData.append('giro', data.giro);
+        if (data.phone) formData.append('phone', data.phone);
+        if (data.rut) formData.append('rut', data.rut);
+        if (data.regionId) formData.append('regionId', data.regionId);
+        if (data.comunaId) formData.append('comunaId', data.comunaId);
+        if (data.razonSocial) formData.append('razonSocial', data.razonSocial);
+        if (data.giro) formData.append('giro', data.giro);
         if (data.direccionLegal) formData.append('direccionLegal', data.direccionLegal);
         formData.append('patenteFile', patenteFile);
         await authApi.registerOrganization(formData);
@@ -100,11 +100,12 @@ export default function RegisterPage() {
           </h2>
           <p className="text-gray-500 leading-relaxed mb-2">
             {role === 'beneficiary'
-              ? 'Tu registro fue enviado correctamente. Un administrador revisará tu información según los criterios de aprobación y te notificará cuando tu cuenta esté activa.'
-              : 'Tu solicitud fue enviada. El administrador revisará tu Patente Municipal y activará tu cuenta una vez validada la documentación.'}
+              ? 'Tu registro se realizó correctamente. Revisa tu email y valida tu dirección de correo electrónico para así completar la activación de tu cuenta.'
+              : 'Tu solicitud fue enviada. El administrador revisará tu Patente Municipal y activará tu cuenta una vez validada la documentación, mientras puedes validar tu correo electrónico.'}
           </p>
           <p className="text-sm text-gray-400 mb-8">
-            Este proceso puede tomar algunos días hábiles.
+            Muchas gracias por ser parte de Donatech!{' '}
+            <span className="text-danger-600">♥</span>
           </p>
           <Link to="/" className="btn-primary w-full block text-center">
             Volver al inicio
@@ -149,11 +150,10 @@ export default function RegisterPage() {
                 key={r.value}
                 type="button"
                 onClick={() => setRole(r.value)}
-                className={`text-left p-3.5 rounded-xl border-2 transition-all ${
-                  role === r.value
+                className={`text-left p-3.5 rounded-xl border-2 transition-all ${role === r.value
                     ? 'border-primary-600 bg-primary-50'
                     : 'border-gray-200 hover:border-gray-300'
-                }`}
+                  }`}
               >
                 <div className={`font-semibold text-sm ${role === r.value ? 'text-primary-700' : 'text-gray-800'}`}>
                   {r.label}
@@ -365,11 +365,10 @@ export default function RegisterPage() {
                     Patente Municipal <span className="text-danger-600">*</span>
                   </label>
                   <div
-                    className={`relative border-2 border-dashed rounded-xl p-5 transition-colors cursor-pointer ${
-                      patenteFile
+                    className={`relative border-2 border-dashed rounded-xl p-5 transition-colors cursor-pointer ${patenteFile
                         ? 'border-primary-400 bg-primary-50'
                         : 'border-gray-200 hover:border-gray-300 bg-white'
-                    }`}
+                      }`}
                   >
                     <input
                       type="file"
@@ -379,9 +378,8 @@ export default function RegisterPage() {
                     />
                     <div className="text-center pointer-events-none">
                       <ArrowUpTrayIcon
-                        className={`w-8 h-8 mx-auto mb-2 ${
-                          patenteFile ? 'text-primary-500' : 'text-gray-400'
-                        }`}
+                        className={`w-8 h-8 mx-auto mb-2 ${patenteFile ? 'text-primary-500' : 'text-gray-400'
+                          }`}
                       />
                       {patenteFile ? (
                         <>

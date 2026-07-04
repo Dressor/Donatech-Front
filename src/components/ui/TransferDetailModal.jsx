@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { ordersApi, usersApi, supportsApi, catalogApi } from '../../api';
+import { useAuth } from '../../context/AuthContext';
 import { getErrorMessage } from '../../utils/errorHandler';
 import { useAuthImage } from '../../utils/imageBlob';
 import StatusBadge from './StatusBadge';
 import LoadingSpinner from './LoadingSpinner';
 import toast from 'react-hot-toast';
-import { XMarkIcon, ShieldCheckIcon, CheckCircleIcon, XCircleIcon, UserIcon, BuildingOffice2Icon, DocumentIcon, HeartIcon, MapPinIcon, PhotoIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, ShieldCheckIcon, CheckCircleIcon, XCircleIcon, UserIcon, BuildingOffice2Icon, DocumentIcon, HeartIcon, MapPinIcon, PhotoIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -32,12 +33,15 @@ function CampaignImageThumb({ campaignId, imageId }) {
 }
 
 export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
+  const { user } = useAuth();
   const [rejecting, setRejecting] = useState(false);
   const [motivo, setMotivo] = useState('');
   const [respuesta, setRespuesta] = useState('');
   const [logistica, setLogistica] = useState('');
 
   const isValidation = ['VALIDACION_TRANSFERENCIA', 'VALIDACION_CAMPAÑA'].includes(ticket.tipo);
+  // Incidencia de entrega con orden vinculada → acciones sobre la orden (re-entrega / marcar entregada).
+  const isDeliveryIssue = ticket.tipo === 'INCIDENCIA_ENTREGA' && !!ticket.donationId;
   const isCampaignValidation = ticket.tipo === 'VALIDACION_CAMPAÑA';
   const isTransfer = ticket.tipo === 'VALIDACION_TRANSFERENCIA';
 
@@ -131,6 +135,28 @@ export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
     onSuccess: () => { toast.success('Ticket respondido y resuelto'); onSuccess(); },
     onError: (err) => toast.error(getErrorMessage(err)),
   });
+
+  // Reabrir la orden para re-entrega + resolver el ticket (dispara correo al usuario).
+  const reopenMutation = useMutation({
+    mutationFn: async () => {
+      await ordersApi.reopenDelivery(ticket.donationId, respuesta);
+      await supportsApi.respond(ticket.id, { respuesta });
+    },
+    onSuccess: () => { toast.success('Entrega reabierta y usuario notificado'); onSuccess(); },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  // Marcar la orden como entregada + resolver el ticket (dispara correo al usuario).
+  const deliverMutation = useMutation({
+    mutationFn: async () => {
+      await ordersApi.confirmDelivery(ticket.donationId, user?.id);
+      await supportsApi.respond(ticket.id, { respuesta });
+    },
+    onSuccess: () => { toast.success('Marcada como entregada y usuario notificado'); onSuccess(); },
+    onError: (err) => toast.error(getErrorMessage(err)),
+  });
+
+  const anyDeliveryActionPending = reopenMutation.isPending || deliverMutation.isPending;
 
   const isPending = ticket.estado === 'PENDIENTE';
   const isOpen = ticket.estado === 'PENDIENTE' || ticket.estado === 'EN_PROGRESO';
@@ -399,7 +425,7 @@ export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
           {/* Responder y resolver — tickets no de validación */}
           {!isValidation && isOpen && (
             <section className="border-t border-gray-100 pt-4 space-y-3">
-              <label className="label">Respuesta a soporte</label>
+              <label className="label">Respuesta al usuario</label>
               <textarea
                 value={respuesta}
                 onChange={(e) => setRespuesta(e.target.value)}
@@ -407,14 +433,49 @@ export default function TransferDetailModal({ ticket, onClose, onSuccess }) {
                 placeholder="Escribe la respuesta o resolución para el solicitante..."
                 className="input-field resize-none"
               />
-              <button
-                onClick={() => respondMutation.mutate()}
-                disabled={respondMutation.isPending || !respuesta.trim()}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 transition-colors disabled:opacity-50"
-              >
-                <CheckCircleIcon className="w-4 h-4" />
-                {respondMutation.isPending ? 'Resolviendo...' : 'Responder y resolver'}
-              </button>
+              <p className="text-xs text-gray-400 -mt-1">Esta respuesta se envía por correo al usuario.</p>
+
+              {isDeliveryIssue ? (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-gray-500">
+                    Gestión de la entrega (orden #{ticket.donationId}):
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => reopenMutation.mutate()}
+                      disabled={anyDeliveryActionPending || !respuesta.trim()}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-amber-50 text-amber-700 text-sm font-medium hover:bg-amber-100 transition-colors disabled:opacity-50"
+                    >
+                      <ArrowPathIcon className="w-4 h-4" />
+                      {reopenMutation.isPending ? 'Reabriendo...' : 'Reabrir para re-entrega'}
+                    </button>
+                    <button
+                      onClick={() => deliverMutation.mutate()}
+                      disabled={anyDeliveryActionPending || !respuesta.trim()}
+                      className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 transition-colors disabled:opacity-50"
+                    >
+                      <CheckCircleIcon className="w-4 h-4" />
+                      {deliverMutation.isPending ? 'Confirmando...' : 'Marcar entregada'}
+                    </button>
+                  </div>
+                  <button
+                    onClick={() => respondMutation.mutate()}
+                    disabled={respondMutation.isPending || !respuesta.trim()}
+                    className="text-xs text-gray-500 hover:text-gray-700 underline disabled:opacity-50"
+                  >
+                    Solo responder (sin cambiar la orden)
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => respondMutation.mutate()}
+                  disabled={respondMutation.isPending || !respuesta.trim()}
+                  className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-green-50 text-green-700 text-sm font-medium hover:bg-green-100 transition-colors disabled:opacity-50"
+                >
+                  <CheckCircleIcon className="w-4 h-4" />
+                  {respondMutation.isPending ? 'Resolviendo...' : 'Responder y resolver'}
+                </button>
+              )}
             </section>
           )}
 

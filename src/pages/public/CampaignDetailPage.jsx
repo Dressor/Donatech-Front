@@ -51,12 +51,17 @@ export default function CampaignDetailPage() {
       toast.error('Solo los donantes pueden realizar donaciones');
       return;
     }
-    addItem(
-      { id: ck.kitId, nombre: ck.kitNombre, precioEstimado: ck.kitPrecioEstimado },
+    const restante = Math.max(0, (ck.cantidadNecesaria ?? 0) - (ck.cantidadFulfilled ?? 0));
+    const ok = addItem(
+      { id: ck.kitId, nombre: ck.kitNombre, precioEstimado: ck.kitPrecioEstimado, maxCantidad: restante },
       1,
       { campaignId: campaign.id, campaignNombre: campaign.titulo, campaignLogistica: campaign.costoLogistica ?? 0 }
     );
-    toast.success(`${ck.kitNombre} agregado al carrito`);
+    if (ok) {
+      toast.success(`${ck.kitNombre} agregado al carrito`);
+    } else {
+      toast.error(`Ya alcanzaste el máximo para "${ck.kitNombre}" (${restante} disponible${restante === 1 ? '' : 's'})`);
+    }
   };
 
   return (

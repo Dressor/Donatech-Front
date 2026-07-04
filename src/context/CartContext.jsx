@@ -33,27 +33,38 @@ export function CartProvider({ children }) {
 
   // Cada item lleva su campaña (id, nombre, logística por kit). Sin campaña global de carrito:
   // así un carrito puede mezclar campañas y el checkout las separa en una orden por campaña.
+  // Tope opcional por línea (cantidad que la campaña aún necesita del kit). Devuelve true si
+  // se agregó, false si ya estaba en el máximo (para que la UI avise).
   const addItem = useCallback((kit, cantidad = 1, campaign = {}) => {
     const campaignId = campaign.campaignId ?? null;
+    const max = kit.maxCantidad ?? null; // null = sin límite conocido
+    let added = true;
     setItems((prev) => {
       const existing = prev.find((i) => sameLine(i, campaignId, kit.id));
       if (existing) {
+        const actual = existing.cantidad;
+        const nueva = max != null ? Math.min(actual + cantidad, max) : actual + cantidad;
+        if (nueva === actual) { added = false; return prev; }
         return prev.map((i) =>
-          sameLine(i, campaignId, kit.id) ? { ...i, cantidad: i.cantidad + cantidad } : i
+          sameLine(i, campaignId, kit.id) ? { ...i, cantidad: nueva, maxCantidad: max } : i
         );
       }
+      const nueva = max != null ? Math.min(cantidad, max) : cantidad;
+      if (nueva <= 0) { added = false; return prev; }
       return [
         ...prev,
         {
           kitId: kit.id,
           kit,
-          cantidad,
+          cantidad: nueva,
+          maxCantidad: max,
           campaignId,
           campaignNombre: campaign.campaignNombre ?? null,
           campaignLogistica: campaign.campaignLogistica ?? 0,
         },
       ];
     });
+    return added;
   }, []);
 
   const removeItem = useCallback((campaignId, kitId) => {
@@ -65,7 +76,11 @@ export function CartProvider({ children }) {
       setItems((prev) => prev.filter((i) => !sameLine(i, campaignId, kitId)));
     } else {
       setItems((prev) =>
-        prev.map((i) => (sameLine(i, campaignId, kitId) ? { ...i, cantidad } : i))
+        prev.map((i) => {
+          if (!sameLine(i, campaignId, kitId)) return i;
+          const capped = i.maxCantidad != null ? Math.min(cantidad, i.maxCantidad) : cantidad;
+          return { ...i, cantidad: capped };
+        })
       );
     }
   }, []);

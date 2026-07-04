@@ -55,6 +55,10 @@ export const ordersApi = {
   confirmDelivery: (id, confirmedById) =>
     api.patch(`/api/orders/${id}/confirm-delivery`, null, { params: { confirmedById } }),
 
+  // Reabrir una entrega no recibida → orden vuelve a EN_PREPARACION (soporte).
+  reopenDelivery: (id, motivo) =>
+    api.patch(`/api/orders/${id}/reopen-delivery`, { motivo }),
+
   // Donación padre (agrupa una orden por campaña)
   getDonations: () => api.get('/api/donations'),
   getDonation: (id) => api.get(`/api/donations/${id}`),

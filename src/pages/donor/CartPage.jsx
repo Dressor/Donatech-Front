@@ -68,6 +68,11 @@ export default function CartPage() {
                     <p className="text-sm text-primary-600 font-medium">
                       {clp(item.kit.precioEstimado ?? item.kit.precioBase ?? 0)} CLP c/u
                     </p>
+                    {item.maxCantidad != null && item.cantidad >= item.maxCantidad && (
+                      <p className="text-xs text-amber-600 font-medium mt-0.5">
+                        Máximo {item.maxCantidad} para este kit (lo que la campaña necesita)
+                      </p>
+                    )}
                   </div>
                   <div className="flex items-center gap-2">
                     <button
@@ -79,7 +84,8 @@ export default function CartPage() {
                     <span className="w-8 text-center font-semibold text-sm">{item.cantidad}</span>
                     <button
                       onClick={() => updateQuantity(g.campaignId, item.kitId, item.cantidad + 1)}
-                      className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors"
+                      disabled={item.maxCantidad != null && item.cantidad >= item.maxCantidad}
+                      className="w-7 h-7 rounded-lg bg-gray-100 flex items-center justify-center hover:bg-gray-200 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       <PlusIcon className="w-3.5 h-3.5 text-gray-600" />
                     </button>
